@@ -1,0 +1,32 @@
+{
+  "name": "tenant-project",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:dev": "nodemon --watch src --exec tsx src/main.ts",
+    "build": "tsc",
+    "start": "drizzle-kit push && node dist/main.js"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.1",
+    "@types/pg": "^8.20.0",
+    "drizzle-kit": "^0.31.10",
+    "express": "^5.2.1",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.3",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.21.0"
+  }
+}

@@ -1,0 +1,26 @@
+POST http://localhost/tenants HTTP/1.1
+content-type: application/json
+
+{
+    "name": "sample",
+    "subdomain": "sample"
+}
+
+POST http://localhost/tenants HTTP/1.1
+content-type: application/json
+
+{
+    "name": "Acme Corp Europe Division",
+    "subdomain": "acme-corp-eu"
+}
+
+
+
+GET http://sample.lvh.me/ HTTP/1.1
+
+
+GET http://acme-corp-eu.lvh.me/ HTTP/1.1
+
+
+GET http://localhost/tenants/ HTTP/1.1
+
