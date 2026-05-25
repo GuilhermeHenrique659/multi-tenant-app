@@ -6,7 +6,7 @@ import { TenantTable } from './modules/tenant/db/TenantTable.js';
 import { eq } from 'drizzle-orm';
 
 const tenantMiddleware = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const host = req.headers.host; // ex: "empresa.meusistema.com" ou "empresa.lvh.me:3000"
+    const host = req.headers.host;
 
     if (!host) {
         return res.status(400).json({ error: "Host header is required" });

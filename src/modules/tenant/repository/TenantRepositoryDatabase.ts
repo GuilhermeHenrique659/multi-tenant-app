@@ -2,8 +2,9 @@ import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import TenantRepository from "./TenantRepository.js";
 import Tenant from "../domain/Tenant.js";
 import { TenantTable } from "../db/TenantTable.js";
-import { eq } from "drizzle-orm";
 import Id from "../../@common/Id.js";
+import Criteria from "../../@common/Criteria.js";
+import { DrizzleCriteriaApply } from "../../@common/DrizzleCriteriaApply.js";
 
 export default class TenantRepositoryDatabase implements TenantRepository {
     constructor (private readonly _db: NodePgDatabase) {}
@@ -17,14 +18,14 @@ export default class TenantRepositoryDatabase implements TenantRepository {
         });
     }
 
-    async hasDuplicateSubdomain(subdomain: string): Promise<boolean> {
-        const result = await this._db.select().from(TenantTable).where(eq(TenantTable.subdomain, subdomain)).limit(1);
+    async has(criteria: Criteria): Promise<boolean> {
+        const result = await this._db.select().from(TenantTable).where(DrizzleCriteriaApply(criteria, TenantTable));
 
         return result.length > 0;
     }
 
-    async getById(id: string): Promise<Tenant | null> {
-        const [result] = await this._db.select().from(TenantTable).where(eq(TenantTable.id, id));
+    async get(criteria: Criteria): Promise<Tenant | null> {
+        const [result] = await this._db.select().from(TenantTable).where(DrizzleCriteriaApply(criteria, TenantTable));
 
         if (!result) return null;
 
