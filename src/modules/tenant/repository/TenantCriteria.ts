@@ -1,18 +1,27 @@
-import Criteria from "../../@common/Criteria.js";
+import Criteria, { BaseCriteria } from "../../@common/Criteria.js";
 
-export default class TenantCriteria implements Criteria {
-    constructor (
-        readonly key: string,
-        readonly value: string,
-        readonly op: string
-    ) {}
-
-    static subdomain(value: string): TenantCriteria {
-        return new TenantCriteria('subdomain', value, 'eq');
+export default class TenantCriteria extends BaseCriteria {
+    constructor () {
+        super();
     }
 
-    static id(value: string): TenantCriteria {
-        return new TenantCriteria('id', value, 'eq');
+    public subdomain(value: string): TenantCriteria {
+        this.addCriteria({
+            key: 'subdomain',
+            value,
+            op: 'eq',
+        });
+
+        return this;
+    }
+
+    public id(value: string): TenantCriteria {
+        this.addCriteria({
+            key: 'id',
+            value,
+            op: 'eq',
+        });
+        return this;
     }
 
 }

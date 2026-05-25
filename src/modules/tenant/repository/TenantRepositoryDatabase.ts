@@ -3,7 +3,7 @@ import TenantRepository from "./TenantRepository.js";
 import Tenant from "../domain/Tenant.js";
 import { TenantTable } from "../db/TenantTable.js";
 import Id from "../../@common/Id.js";
-import Criteria from "../../@common/Criteria.js";
+import Criteria, { BaseCriteria } from "../../@common/Criteria.js";
 import { DrizzleCriteriaApply } from "../../@common/DrizzleCriteriaApply.js";
 
 export default class TenantRepositoryDatabase implements TenantRepository {
@@ -18,13 +18,13 @@ export default class TenantRepositoryDatabase implements TenantRepository {
         });
     }
 
-    async has(criteria: Criteria): Promise<boolean> {
+    async has(criteria: BaseCriteria): Promise<boolean> {
         const result = await this._db.select().from(TenantTable).where(DrizzleCriteriaApply(criteria, TenantTable));
 
         return result.length > 0;
     }
 
-    async get(criteria: Criteria): Promise<Tenant | null> {
+    async get(criteria: BaseCriteria): Promise<Tenant | null> {
         const [result] = await this._db.select().from(TenantTable).where(DrizzleCriteriaApply(criteria, TenantTable));
 
         if (!result) return null;

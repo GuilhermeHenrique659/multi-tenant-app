@@ -8,7 +8,7 @@ export default class CreateTenant {
     async execute (input: Input): Promise<Output> {
         const tenant = Tenant.create(input.name, input.subdomain);
         
-        const hasDuplicateSubdomain = await this._tenantRepository.has(TenantCriteria.subdomain(input.subdomain));
+        const hasDuplicateSubdomain = await this._tenantRepository.has(new TenantCriteria().subdomain(input.subdomain));
 
         if (hasDuplicateSubdomain) {
             throw new Error("Subdomain already in use");
