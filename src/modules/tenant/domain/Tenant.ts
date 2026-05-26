@@ -16,8 +16,8 @@ export default class Tenant extends Subject {
         super();
     }
 
-    get id(): Id {
-        return this._props.id;
+    get id(): string {
+        return this._props.id.value;
     }
 
     get name(): string {
@@ -53,7 +53,7 @@ export default class Tenant extends Subject {
 
         this._props.memberships.push(Membership.create(userId, this._props.id.value, role));
 
-        this.notify({ event: "memberAdded", data: { userId, tenantId: this._props.id.value, role } });
+        this.notify({ event: "memberAdded", data: { userId,  role } });
     }
 
     public removeMember(userId: string) {

@@ -8,6 +8,8 @@ import User from './modules/user/domain/User.js';
 import Mediator from './modules/@common/Mediator.js';
 import TenantQuery from './modules/tenant/query/TenantQuery.js';
 import { permssionMiddleware, tenantSubdomainMiddleware } from './modules/@common/Middleware.js';
+import RemoveMember from './modules/tenant/application/RemoveMember.js';
+import UpdateMember from './modules/tenant/application/UpdateMember..js';
 
 async function main() {
     const app = express();
@@ -63,6 +65,39 @@ async function main() {
                     email: req.body.email,
                     id: req.body.id,
                 },
+                role: req.body.role,
+            });
+
+            res.status(200).json(response);
+        } catch (error) {
+            res.status(400).json({ error: (error as any).message });
+        }
+    });
+
+    app.delete('/tenants/:tenantId/users/:userId', permssionMiddleware(['tenant:user:read', 'tenant:user:remove']), async (req, res) => {
+        const tenantRepository = new TenantRepositoryDatabase(db);
+        const removeMember = new RemoveMember(tenantRepository);
+        
+        try {
+            await removeMember.execute({
+                tenantId: req.params.tenantId as string,
+                userId: req.params.userId as string,
+            });
+
+            res.status(204).send();
+        } catch (error) {
+            res.status(400).json({ error: (error as any).message });
+        }
+    });
+
+    app.patch('/tenants/:tenantId/users/:userId', permssionMiddleware(['tenant:user:read', 'tenant:user:edit']), async (req, res) => {
+        const tenantRepository = new TenantRepositoryDatabase(db);
+        const updateMember = new UpdateMember(tenantRepository);
+        
+        try {
+            const response = await updateMember.execute({
+                tenantId: req.params.tenantId as string,
+                userId: req.params.userId as string,
                 role: req.body.role,
             });
 

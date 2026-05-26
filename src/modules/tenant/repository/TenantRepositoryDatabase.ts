@@ -27,7 +27,7 @@ export default class TenantRepositoryDatabase implements TenantRepository {
 
     private async _addTenent(tenant: Tenant): Promise<void> {
         await this._db.insert(TenantTable).values({
-            id: tenant.id.value,
+            id: tenant.id,
             name: tenant.name,
             subdomain: tenant.subdomain,
             maxNumberOfMembers: tenant.maxNumberOfMembers,
@@ -36,7 +36,7 @@ export default class TenantRepositoryDatabase implements TenantRepository {
 
         for (const membership of tenant.memberships) {
             await this._db.insert(MembershipTable).values({
-                tenantId: tenant.id.value,
+                tenantId: tenant.id,
                 userId: membership.userId.value,
                 role: membership.role.value,
             });
@@ -44,7 +44,7 @@ export default class TenantRepositoryDatabase implements TenantRepository {
     }
 
     async save(tenant: Tenant): Promise<void> {
-        const changeTrackingObserver = this.changeTraking.get(tenant.id.value);
+        const changeTrackingObserver = this.changeTraking.get(tenant.id);
 
         if (!changeTrackingObserver) return this._addTenent(tenant);
 
@@ -52,7 +52,7 @@ export default class TenantRepositoryDatabase implements TenantRepository {
             switch (change.event) {
                 case "memberAdded": {
                     await this._db.insert(MembershipTable).values({
-                        tenantId: change.data.tenantId,
+                        tenantId: tenant.id,
                         userId: change.data.userId,
                         role: change.data.role,
                     });
@@ -63,7 +63,7 @@ export default class TenantRepositoryDatabase implements TenantRepository {
                         role: change.data.role,
                     }).where(
                         and(
-                            eq(MembershipTable.tenantId, change.data.tenantId),
+                            eq(MembershipTable.tenantId, tenant.id),
                             eq(MembershipTable.userId, change.data.userId)
                         )
                     );
@@ -72,7 +72,7 @@ export default class TenantRepositoryDatabase implements TenantRepository {
                 case "memberRemoved": {
                     await this._db.delete(MembershipTable).where(
                         and(
-                            eq(MembershipTable.tenantId, change.data.tenantId),
+                            eq(MembershipTable.tenantId, tenant.id),
                             eq(MembershipTable.userId, change.data.userId)
                         )
                     );
@@ -119,7 +119,7 @@ export default class TenantRepositoryDatabase implements TenantRepository {
         const changeTrackingObserver = new ChangeTrackingObserver();
         entity.subscribe(changeTrackingObserver);
 
-        this.changeTraking.set(entity.id.value, changeTrackingObserver);
+        this.changeTraking.set(entity.id, changeTrackingObserver);
 
         return entity
     }

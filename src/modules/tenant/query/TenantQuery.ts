@@ -2,6 +2,7 @@ import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { TenantTable } from "../db/TenantTable.js";
 import { MembershipTable } from "../db/MembershipTable.js";
 import { and, eq } from "drizzle-orm";
+import { UserTable } from "../../user/db/UserTable.js";
 
 type TenantData = {
     id: string;
@@ -9,20 +10,23 @@ type TenantData = {
     maxNumberOfMembers: number;
     createdAt: Date;
     memberships: {
-        userId: string;
+        user: {
+            id: string;
+            name: string;
+        };
         role: string;
     }[];
 }
 
 class TenantMapper {
-    static toTenantData(tenant: any, memberships: any[]): TenantData {
+    static toTenantData(tenant: any, memberships: any[], users: Map<string, any>): TenantData {
         return {
             id: tenant.id,
             name: tenant.name,
             maxNumberOfMembers: tenant.maxNumberOfMembers,
             createdAt: tenant.createdAt,
             memberships: memberships.map(m => ({
-                userId: m.userId,
+                user: users.get(m.userId)!,
                 role: m.role,
             })),
         };
@@ -42,7 +46,10 @@ export default class TenantQuery {
     constructor(private readonly _db: NodePgDatabase) { }
 
     public async getTenantDataById(tenantId: string): Promise<TenantData | null> {
-        const result = await this._db.select({ tenant: TenantTable, membership: MembershipTable }).from(TenantTable).leftJoin(MembershipTable, eq(TenantTable.id, MembershipTable.tenantId)).where(eq(TenantTable.id, tenantId));
+        const result = await this._db.select({ tenant: TenantTable, membership: MembershipTable, user: UserTable }).from(TenantTable)
+            .leftJoin(MembershipTable, eq(TenantTable.id, MembershipTable.tenantId))
+            .innerJoin(UserTable, eq(MembershipTable.userId, UserTable.id))
+            .where(eq(TenantTable.id, tenantId));
 
         const tenant = result[0]?.tenant;
         if (!tenant) return null;
@@ -52,7 +59,8 @@ export default class TenantQuery {
         }
 
         const memberships = result.map(r => r.membership).filter((m): m is any => !!m);
-        const tenantData: TenantData = TenantMapper.toTenantData(tenant, memberships);
+        const users = new Map(result.map(r => r.user).filter((u) => !!u).map((u => [u.id, u])));
+        const tenantData: TenantData = TenantMapper.toTenantData(tenant, memberships, users);
 
         return tenantData;
     }
@@ -69,7 +77,11 @@ export default class TenantQuery {
     }
 
     public async getTenantDataBySubdomain(subdomain: string): Promise<TenantData | null> {
-        const result = await this._db.select({ tenant: TenantTable, membership: MembershipTable }).from(TenantTable).leftJoin(MembershipTable, eq(TenantTable.id, MembershipTable.tenantId)).where(eq(TenantTable.subdomain, subdomain));
+        const result = await this._db.select({ tenant: TenantTable, membership: MembershipTable, user: UserTable })
+            .from(TenantTable)
+            .leftJoin(MembershipTable, eq(TenantTable.id, MembershipTable.tenantId))
+            .innerJoin(UserTable, eq(MembershipTable.userId, UserTable.id))
+            .where(eq(TenantTable.subdomain, subdomain));
 
         const tenant = result[0]?.tenant;
         if (!tenant) return null;
@@ -79,7 +91,8 @@ export default class TenantQuery {
         }
 
         const memberships = result.map(r => r.membership).filter((m): m is any => !!m);
-        const tenantData: TenantData = TenantMapper.toTenantData(tenant, memberships);
+        const users = new Map(result.map(r => r.user).filter((u) => !!u).map((u => [u.id, u])));
+        const tenantData: TenantData = TenantMapper.toTenantData(tenant, memberships, users);
 
         return tenantData;
     }
