@@ -1,11 +1,11 @@
 import Mediator from "../../@common/Mediator.js";
 import * as UserModule from "../../user/UserModule.js";
 import Membership from "../domain/Membership.js";
-import { MembershipCriteria } from "../repository/MembershipCriteria.js";
-import MembershipRepository from "../repository/MembershipRepository.js";
+import TenantCriteria from "../repository/TenantCriteria.js";
+import TenantRepository from "../repository/TenantRepository.js";
 
 export default class AddUserToTenant {
-    constructor(private readonly membershipRepository: MembershipRepository, private readonly _mediator: Mediator = new Mediator()) { }
+    constructor(private readonly tenantRepository: TenantRepository, private readonly _mediator: Mediator = new Mediator()) { }
 
     async execute(input: Input): Promise<Output> {
         const userExists = await this._mediator.notify<UserModule.CheckInInput, UserModule.CheckInOutput>("checkInUser", {
@@ -18,14 +18,15 @@ export default class AddUserToTenant {
             throw new Error("User does not exist");
         }
 
-        const hasMembership = await this.membershipRepository.has(new MembershipCriteria().userId(userExists.userId).tenantId(input.tenantId));
+        const tentent = await this.tenantRepository.get(new TenantCriteria().id(input.tenantId));
 
-        if (hasMembership) {
-            throw new Error("User is already a member of this tenant");
+        if (!tentent) {
+            throw new Error("Tenant does not exist");
         }
 
-        const membership = Membership.create(userExists.userId, input.tenantId, input.role);
-        await this.membershipRepository.save(membership);
+        tentent.addNewMember(userExists.userId, input.tenantId, input.role);
+
+        this.tenantRepository.save(tentent);
         
         return { userId: userExists.userId, tenantId: input.tenantId, role: input.role };
     }

@@ -11,7 +11,6 @@ export class Role {
 type MembershipProps = {
     userId: Id;
     role: Role;
-    tenantId: Id;
 };
 
 export default class Membership { 
@@ -25,20 +24,18 @@ export default class Membership {
         return this._props.role;
     }
 
-    get tenantId(): Id {
-        return this._props.tenantId;
+    hasUserId(userId: string): boolean {
+        return this._props.userId.value === userId;
     }
 
-    changeRole(role: Role) {
-        this._props.role = role;
+    changeRole(role: string) {
+        this._props.role = new Role(role);
     }   
 
     static create(userId: string, tenantId: string, role: string): Membership {
         return new Membership({
             userId: new Id(userId),
             role: new Role(role),
-            tenantId: new Id(tenantId),
         });
-    }
-    
+    }   
 }

@@ -1,6 +1,6 @@
 export default class CheckIn {
     async execute(input: Input): Promise<Output> {
-
+        
     }
 }
 
