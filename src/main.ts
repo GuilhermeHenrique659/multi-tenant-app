@@ -20,15 +20,27 @@ async function main() {
         return userModule.checkInUser(input);
     });
 
-    mediator.register('createTenantFail', async (input: CreateTenantInput) => userModule.removeUser({
-        id: input.admin.userId,
-        email: input.admin.email,
-    }));
+    mediator.register('createTenantFail', async (input: CreateTenantInput) => {
+        try {
+            await userModule.removeUser({
+                id: input.admin.userId,
+                email: input.admin.email,
+            })
+        } catch (error) {
+            console.error('Failed to rollback user creation after tenant creation failure:', (error as any).message);
+        }
+    });
 
-    mediator.register('addMemberFail', async (input: AddMemberInput) => userModule.removeUser({
-        id: input.userId,
-        email: input.email,
-    }));
+    mediator.register('addMemberFail', async (input: AddMemberInput) => {
+        try {
+            await userModule.removeUser({
+                id: input.userId,
+                email: input.email,
+            })
+        } catch (error) {
+            console.error('Failed to rollback user creation after member addition failure:', (error as any).message);
+        }
+    });
 
     const tenantModule = new TenantModuleImpl(db, mediator, new TenantQuery(db));
 
