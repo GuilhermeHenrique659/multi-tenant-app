@@ -2,14 +2,11 @@ import express from 'express';
 import CreateTenant from './modules/tenant/application/CreateTenant.js';
 import TenantRepositoryDatabase from './modules/tenant/repository/TenantRepositoryDatabase.js';
 import { db } from './db/config.js';
-import { TenantTable } from './modules/tenant/db/TenantTable.js';
-import { eq } from 'drizzle-orm';
 import AddUserToTenant from './modules/tenant/application/AddUserToTenant.js';
 import { UserTable } from './modules/user/db/UserTable.js';
 import User from './modules/user/domain/User.js';
 import Mediator from './modules/@common/Mediator.js';
 import TenantQuery from './modules/tenant/query/TenantQuery.js';
-import { Permissions } from './modules/@common/Permissions.js';
 import { permssionMiddleware, tenantSubdomainMiddleware } from './modules/@common/Middleware.js';
 
 async function main() {
@@ -75,8 +72,8 @@ async function main() {
         }
     });
 
-    app.get('/tenants/:id', async (req, res) => {
-        const tenant = await new TenantQuery(db).getTenantDataById(req.params.id);
+    app.get('/tenants/:id', permssionMiddleware(['tenant:details:view']), async (req, res) => {
+        const tenant = await new TenantQuery(db).getTenantDataById(req.params.id as string);
 
         if (!tenant) {
             return res.status(404).json({ error: "Tenant não encontrado" });

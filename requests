@@ -37,4 +37,7 @@ GET http://acme-corp-eu.lvh.me/ HTTP/1.1
 
 
 GET http://localhost:3000/tenants/33a68d44-7f41-4e6a-b5d1-066da8ea8fe4 HTTP/1.1
+content-type: application/json
+x-user-id: de97e9b1-e9f7-4ec0-bdf7-6dc68df9141f
+x-tenant-id: 33a68d44-7f41-4e6a-b5d1-066da8ea8fe4
 
