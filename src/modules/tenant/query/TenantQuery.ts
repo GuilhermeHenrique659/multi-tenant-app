@@ -9,7 +9,7 @@ type TenantData = {
     name: string;
     maxNumberOfMembers: number;
     createdAt: Date;
-    memberships: {
+    members: {
         user: {
             id: string;
             name: string;
@@ -25,14 +25,14 @@ class TenantMapper {
             name: tenant.name,
             maxNumberOfMembers: tenant.maxNumberOfMembers,
             createdAt: tenant.createdAt,
-            memberships: memberships.map(m => ({
+            members: memberships.map(m => ({
                 user: users.get(m.userId)!,
                 role: m.role,
             })),
         };
     }
 
-    static toTenantDataWithoutMemberships(tenant: any): Omit<TenantData, 'memberships'> {
+    static toTenantDataWithoutMemberships(tenant: any): Omit<TenantData, 'members'> {
         return {
             id: tenant.id,
             name: tenant.name,
@@ -98,7 +98,7 @@ export default class TenantQuery {
     }
 
 
-    public async getAllTenants(): Promise<Omit<TenantData, 'memberships'>[]> {
+    public async getAllTenants(): Promise<Omit<TenantData, 'members'>[]> {
         const result = await this._db.select().from(TenantTable);
 
         return result.map(tenant => TenantMapper.toTenantDataWithoutMemberships(tenant));

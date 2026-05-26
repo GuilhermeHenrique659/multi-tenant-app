@@ -93,7 +93,7 @@ export default class TenantRepositoryDatabase implements TenantRepository {
     }
 
     async has(criteria: BaseCriteria): Promise<boolean> {
-        const result = await this._db.select().from(TenantTable).where(DrizzleCriteriaApply(criteria, TenantTable));
+        const result = await this._db.select({ id: TenantTable.id }).from(TenantTable).where(DrizzleCriteriaApply(criteria, TenantTable));
 
         return result.length > 0;
     }

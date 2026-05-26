@@ -5,6 +5,7 @@ type UserProps = {
     name: string;
     email: string;
     createdAt: Date;
+    isActive: boolean;
 }
 
 export default class User {
@@ -26,11 +27,20 @@ export default class User {
         return this.props.createdAt;
     }
 
+    get isActive(): boolean  {
+        return this.props.isActive;
+    }
+
+    public active() {
+        this.props.isActive = true;
+    }
+
     static create(name: string, email: string): User {
         return new User({
             id: Id.create(),
             name,
             email,
+            isActive: false,
             createdAt: new Date(),
         });
     }

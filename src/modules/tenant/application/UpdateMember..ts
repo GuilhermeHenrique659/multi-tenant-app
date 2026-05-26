@@ -14,7 +14,7 @@ export default class UpdateMember {
         await this._tenantRepository.save(tenant);
 
         return {
-            tenantId: tenant.id.value,
+            tenantId: tenant.id,
             userId: input.userId,
             newRole: input.role,
         }
@@ -24,11 +24,11 @@ export default class UpdateMember {
 type Input = {
     tenantId: string;
     userId: string;
-    role: 'admin' | 'member';
+    role: string;
 }
 
 type Output = {
     tenantId: string;
     userId: string;
-    newRole: 'admin' | 'member';
+    newRole: string;
 }

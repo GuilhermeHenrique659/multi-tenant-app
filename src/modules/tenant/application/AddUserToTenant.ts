@@ -1,5 +1,5 @@
 import Mediator from "../../@common/Mediator.js";
-import * as UserModule from "../../user/UserModule.js";
+import * as UserModule from "../../user/index.js";
 import Membership from "../domain/Membership.js";
 import TenantCriteria from "../repository/TenantCriteria.js";
 import TenantRepository from "../repository/TenantRepository.js";
@@ -27,7 +27,7 @@ export default class AddUserToTenant {
         tentent.addNewMember(userExists.userId, input.role);
 
         this.tenantRepository.save(tentent);
-        
+
         return { userId: userExists.userId, tenantId: input.tenantId, role: input.role };
     }
 }
@@ -35,15 +35,15 @@ export default class AddUserToTenant {
 type Output = {
     userId: string;
     tenantId: string;
-    role: 'admin' | 'member';
+    role: string;
 }
 
 type Input = {
     tenantId: string;
     user: {
-        id?: string;
+        id: string | undefined;
         name: string;
         email: string;
     }
-    role: 'admin' | 'member';
+    role: string;
 }

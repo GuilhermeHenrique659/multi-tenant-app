@@ -1,15 +1,12 @@
 import express from 'express';
-import CreateTenant from './modules/tenant/application/CreateTenant.js';
-import TenantRepositoryDatabase from './modules/tenant/repository/TenantRepositoryDatabase.js';
-import { db } from './db/config.js';
-import AddUserToTenant from './modules/tenant/application/AddUserToTenant.js';
-import { UserTable } from './modules/user/db/UserTable.js';
-import User from './modules/user/domain/User.js';
 import Mediator from './modules/@common/Mediator.js';
+import UserModuleImpl from './modules/user/user.module.js';
 import TenantQuery from './modules/tenant/query/TenantQuery.js';
+import TenantModuleImpl from './modules/tenant/tenant.module.js';
+
+import { db } from './db/config.js';
 import { permssionMiddleware, tenantSubdomainMiddleware } from './modules/@common/Middleware.js';
-import RemoveMember from './modules/tenant/application/RemoveMember.js';
-import UpdateMember from './modules/tenant/application/UpdateMember..js';
+import { AddMemberInput, CreateTenantInput } from './modules/tenant/index.js';
 
 async function main() {
     const app = express();
@@ -17,33 +14,27 @@ async function main() {
     app.use(express.json());
 
     const mediator = new Mediator();
-    mediator.register('checkInUser', async (data: any) => {
-        const mockUser = User.create(data.name, data.email);
-        const res = await db.insert(UserTable).values({
-            id: data.userId ?? mockUser.id,
-            name: mockUser.name,
-            email: mockUser.email,
-            createdAt: mockUser.createdAt,
-        }).onConflictDoUpdate({
-            target: UserTable.email, set: {
-                id: data.userId ?? mockUser.id,
-                name: mockUser.name,
-                email: mockUser.email,
-                createdAt: mockUser.createdAt,
-            }
-        }).returning().execute();
-        console.log(res);
+    const userModule = new UserModuleImpl(db);
 
-        return { userId: res[0]?.id! };
+    mediator.register('checkInUser', async (input: any) => {
+        return userModule.checkInUser(input);
     });
 
+    mediator.register('createTenantFail', async (input: CreateTenantInput) => userModule.removeUser({
+        id: input.admin.userId,
+        email: input.admin.email,
+    }));
+
+    mediator.register('addMemberFail', async (input: AddMemberInput) => userModule.removeUser({
+        id: input.userId,
+        email: input.email,
+    }));
+
+    const tenantModule = new TenantModuleImpl(db, mediator, new TenantQuery(db));
 
     app.post('/tenants', async (req, res) => {
-        const tenantRepository = new TenantRepositoryDatabase(db);
-
-        const createTenant = new CreateTenant(tenantRepository, mediator);
         try {
-            const response = await createTenant.execute(req.body);
+            const response = await tenantModule.createTenant(req.body);
 
             res.status(201).json(response);
         } catch (error) {
@@ -51,21 +42,14 @@ async function main() {
         }
     });
 
-
     app.post('/tenants/:id/users', permssionMiddleware(['tenant:user:read', 'tenant:user:add']), async (req, res) => {
-        const tenantRepository = new TenantRepositoryDatabase(db);
-
-        const addUserToTenant = new AddUserToTenant(tenantRepository, mediator);
-
         try {
-            const response = await addUserToTenant.execute({
+            const response = await tenantModule.addMember({
                 tenantId: req.params.id as string,
-                user: {
-                    name: req.body.name,
-                    email: req.body.email,
-                    id: req.body.id,
-                },
-                role: req.body.role,
+                userId: req.body.id as string,
+                name: req.body.name as string,
+                email: req.body.email as string,
+                role: req.body.role as string,
             });
 
             res.status(200).json(response);
@@ -75,15 +59,8 @@ async function main() {
     });
 
     app.delete('/tenants/:tenantId/users/:userId', permssionMiddleware(['tenant:user:read', 'tenant:user:remove']), async (req, res) => {
-        const tenantRepository = new TenantRepositoryDatabase(db);
-        const removeMember = new RemoveMember(tenantRepository);
-        
         try {
-            await removeMember.execute({
-                tenantId: req.params.tenantId as string,
-                userId: req.params.userId as string,
-            });
-
+            await tenantModule.removeMember(req.params.tenantId as string, req.params.userId as string);
             res.status(204).send();
         } catch (error) {
             res.status(400).json({ error: (error as any).message });
@@ -91,24 +68,25 @@ async function main() {
     });
 
     app.patch('/tenants/:tenantId/users/:userId', permssionMiddleware(['tenant:user:read', 'tenant:user:edit']), async (req, res) => {
-        const tenantRepository = new TenantRepositoryDatabase(db);
-        const updateMember = new UpdateMember(tenantRepository);
-        
         try {
-            const response = await updateMember.execute({
-                tenantId: req.params.tenantId as string,
-                userId: req.params.userId as string,
-                role: req.body.role,
-            });
+            await tenantModule.updateMember(req.params.tenantId as string, req.params.userId as string, req.body.role as string);
+            res.status(204).send();
+        } catch (error) {
+            res.status(400).json({ error: (error as any).message });
+        }
+    });
 
-            res.status(200).json(response);
+    app.patch('/tenants/:tenantId/users/:userId', permssionMiddleware(['tenant:user:read', 'tenant:user:edit']), async (req, res) => {
+        try {
+            await tenantModule.updateMember(req.params.tenantId as string, req.params.userId as string, req.body.role as string);
+            res.status(204).send();
         } catch (error) {
             res.status(400).json({ error: (error as any).message });
         }
     });
 
     app.get('/tenants/:id', permssionMiddleware(['tenant:details:view']), async (req, res) => {
-        const tenant = await new TenantQuery(db).getTenantDataById(req.params.id as string);
+        const tenant = await tenantModule.getById(req.params.id as string);
 
         if (!tenant) {
             return res.status(404).json({ error: "Tenant não encontrado" });
@@ -118,7 +96,7 @@ async function main() {
     });
 
     app.get('/tenants', async (req, res) => {
-        const tenants = await new TenantQuery(db).getAllTenants();
+        const tenants = await tenantModule.list();
 
         res.status(200).json(tenants);
     });
