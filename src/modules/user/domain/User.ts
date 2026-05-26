@@ -6,6 +6,7 @@ type UserProps = {
     email: string;
     createdAt: Date;
     isActive: boolean;
+    isSuperAdmin: boolean;
 }
 
 export default class User {
@@ -31,6 +32,10 @@ export default class User {
         return this.props.isActive;
     }
 
+    get isSuperAdmin(): boolean {
+        return this.props.isSuperAdmin;
+    }
+
     public active() {
         this.props.isActive = true;
     }
@@ -41,6 +46,18 @@ export default class User {
             name,
             email,
             isActive: false,
+            isSuperAdmin: false,
+            createdAt: new Date(),
+        });
+    }
+
+    static createAsSuperAdmin(name: string, email: string): User {
+        return new User({
+            id: Id.create(),
+            name,
+            email,
+            isActive: false,
+            isSuperAdmin: true,
             createdAt: new Date(),
         });
     }

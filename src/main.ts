@@ -5,8 +5,19 @@ import TenantQuery from './modules/tenant/query/TenantQuery.js';
 import TenantModuleImpl from './modules/tenant/tenant.module.js';
 
 import { db } from './db/config.js';
-import { permssionMiddleware, tenantSubdomainMiddleware } from './modules/@common/Middleware.js';
+import { permssionMiddleware, superAdminPermissionMidleware, tenantSubdomainMiddleware } from './modules/@common/Middleware.js';
 import { AddMemberInput, CreateTenantInput } from './modules/tenant/index.js';
+
+const CreateSuperAdmin = async () => {
+    const userModule = new UserModuleImpl(db);
+
+    try {
+        await userModule.createSuperUser({ name: process.env.SUPER_ADMIN_NAME!, email: process.env.SUPER_ADMIN_EMAIL! });
+        console.log('Super admin user created successfully');
+    } catch (error) {
+        console.error('Failed to create super admin user:', (error as any).message);
+    }
+}
 
 async function main() {
     const app = express();
@@ -44,7 +55,9 @@ async function main() {
 
     const tenantModule = new TenantModuleImpl(db, mediator, new TenantQuery(db));
 
-    app.post('/tenants', async (req, res) => {
+    await CreateSuperAdmin();
+
+    app.post('/tenants', superAdminPermissionMidleware(), async (req, res) => {
         try {
             const response = await tenantModule.createTenant(req.body);
 
@@ -107,10 +120,20 @@ async function main() {
         res.status(200).json(tenant);
     });
 
-    app.get('/tenants', async (req, res) => {
+    app.get('/tenants', superAdminPermissionMidleware(), async (req, res) => {
         const tenants = await tenantModule.list();
 
         res.status(200).json(tenants);
+    });
+
+    app.post('/users', async (req, res) => {
+        try {
+            const result = await userModule.login({ email: req.body.email });
+
+            res.status(200).json(result);
+        } catch (error) {
+            res.status(400).json({ error: (error as any).message });
+        }
     });
 
     app.get("/", tenantSubdomainMiddleware, (req, res) => {

@@ -4,6 +4,7 @@ import { db } from "../../db/config.js";
 import { eq } from "drizzle-orm";
 import TenantQuery from "../tenant/query/TenantQuery.js";
 import { Permissions } from "./Permissions.js";
+import UserQuery from "../user/query/UserQuery.js";
 
 export const tenantSubdomainMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     const host = req.headers.host;
@@ -36,10 +37,30 @@ export const tenantSubdomainMiddleware = async (req: Request, res: Response, nex
     next();
 }
 
-export const permssionMiddleware = (permisssions: string[]) => async (req: Request, res: Response, next: NextFunction) => {
-    const user = req.headers['x-user-id'];
+export const superAdminPermissionMidleware = () => async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.headers['x-user-id'];
+
+    if (!userId) {
+        return res.status(401).json({ error: "User ID is required in x-user-id header" });
+    }
+
+    const user = await new UserQuery(db).getById(String(userId) as string);
 
     if (!user) {
+        return res.status(401).json({ error: "User not found" });
+    }
+
+    if (user.isSuperAdmin) return next();
+
+    return res.status(403).json({
+        error: "User does not have permission to access this resource"
+    });
+}
+
+export const permssionMiddleware = (permisssions: string[]) => async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.headers['x-user-id'];
+
+    if (!userId) {
         return res.status(401).json({ error: "User ID is required in x-user-id header" });
     }
 
@@ -48,7 +69,16 @@ export const permssionMiddleware = (permisssions: string[]) => async (req: Reque
     if (!tenant) {
         return res.status(400).json({ error: "Tenant ID is required in x-tenant-id header" });
     }
-    const userRole = await new TenantQuery(db).getUserRoleByTenantIdAndUserId(String(tenant) as string, String(user) as string);
+
+    const user = await new UserQuery(db).getById(String(userId) as string);
+
+    if (!user) {
+        return res.status(401).json({ error: "User not found" });
+    }
+
+    if (user.isSuperAdmin) return next();
+
+    const userRole = await new TenantQuery(db).getUserRoleByTenantIdAndUserId(String(tenant) as string, String(userId) as string);
 
     if (!userRole) {
         return res.status(403).json({ error: "User does not have access to this tenant" });
@@ -65,6 +95,5 @@ export const permssionMiddleware = (permisssions: string[]) => async (req: Reque
         });
     }
 
-    // Só chega aqui se tudo estiver ok
     next();
 }

@@ -26,6 +26,7 @@ export default class UserRepositoryDatabase implements UserRepository {
             name: user.name,
             createdAt: user.createdAt,
             isActive: user.isActive,
+            isSuperAdmin: user.isSuperAdmin,
         });
     }
 
@@ -36,6 +37,16 @@ export default class UserRepositoryDatabase implements UserRepository {
             name: user.name,
             createdAt: user.createdAt,
             isActive: user.isActive,
+            isSuperAdmin: user.isSuperAdmin,
+        }).onConflictDoUpdate({
+            target: UserTable.id,
+            set: {
+                email: user.email,
+                name: user.name,
+                createdAt: user.createdAt,
+                isActive: user.isActive,
+                isSuperAdmin: user.isSuperAdmin,
+            }
         });
     }
     
