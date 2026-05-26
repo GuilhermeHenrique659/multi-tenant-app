@@ -24,7 +24,7 @@ export default class AddUserToTenant {
             throw new Error("Tenant does not exist");
         }
 
-        tentent.addNewMember(userExists.userId, input.tenantId, input.role);
+        tentent.addNewMember(userExists.userId, input.role);
 
         this.tenantRepository.save(tentent);
         

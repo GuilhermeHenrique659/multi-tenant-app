@@ -1,0 +1,1 @@
+ALTER TABLE "tenant" ALTER COLUMN "max_number_of_members" SET DEFAULT 0;

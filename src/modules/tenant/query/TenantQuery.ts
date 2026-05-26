@@ -43,10 +43,10 @@ export default class TenantQuery {
 
     public async getTenantDataById(tenantId: string): Promise<TenantData | null> {
         const result = await this._db.select({ tenant: TenantTable, membership: MembershipTable }).from(TenantTable).leftJoin(MembershipTable, eq(TenantTable.id, MembershipTable.tenantId)).where(eq(TenantTable.id, tenantId));
-        
+
         const tenant = result[0]?.tenant;
         if (!tenant) return null;
-        
+
         if (result.length === 0) {
             return null;
         }
@@ -58,19 +58,22 @@ export default class TenantQuery {
     }
 
     public async getUserRoleByTenantIdAndUserId(tenantId: string, userId: string): Promise<string | null> {
-        const [result] = await this._db.select().from(MembershipTable).where(and(eq(MembershipTable.tenantId, tenantId), eq(MembershipTable.userId, userId)));
-        
+        const [result] = await this._db.select()
+            .from(MembershipTable)
+            .where(and(eq(MembershipTable.tenantId, tenantId), eq(MembershipTable.userId, userId)));
+
+
         if (!result) return null;
-        
+
         return result.role;
     }
 
     public async getTenantDataBySubdomain(subdomain: string): Promise<TenantData | null> {
         const result = await this._db.select({ tenant: TenantTable, membership: MembershipTable }).from(TenantTable).leftJoin(MembershipTable, eq(TenantTable.id, MembershipTable.tenantId)).where(eq(TenantTable.subdomain, subdomain));
-        
+
         const tenant = result[0]?.tenant;
         if (!tenant) return null;
-        
+
         if (result.length === 0) {
             return null;
         }
@@ -84,7 +87,7 @@ export default class TenantQuery {
 
     public async getAllTenants(): Promise<Omit<TenantData, 'memberships'>[]> {
         const result = await this._db.select().from(TenantTable);
-        
+
         return result.map(tenant => TenantMapper.toTenantDataWithoutMemberships(tenant));
     }
 }

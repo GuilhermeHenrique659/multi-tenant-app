@@ -40,7 +40,7 @@ export default class Tenant extends Subject {
         return this._props.createdAt;
     }
 
-    public addNewMember(userId: string, tenantId: string, role: string) {
+    public addNewMember(userId: string, role: string) {
         const hasMembership = this._props.memberships.some(membership => membership.hasUserId(userId));
 
         if (hasMembership) {
@@ -51,9 +51,9 @@ export default class Tenant extends Subject {
             throw new Error("Tenant has reached the maximum number of members");
         }
 
-        this._props.memberships.push(Membership.create(userId, tenantId, role));
+        this._props.memberships.push(Membership.create(userId, this._props.id.value, role));
 
-        this.notify({ event: "memberAdded", data: { userId, tenantId, role } });
+        this.notify({ event: "memberAdded", data: { userId, tenantId: this._props.id.value, role } });
     }
 
     public removeMember(userId: string) {
