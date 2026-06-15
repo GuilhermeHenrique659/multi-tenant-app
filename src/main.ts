@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import Mediator from './modules/@common/Mediator.js';
 import UserModuleImpl from './modules/user/user.module.js';
 import TenantQuery from './modules/tenant/query/TenantQuery.js';
@@ -7,6 +7,9 @@ import TenantModuleImpl from './modules/tenant/tenant.module.js';
 import { db } from './db/config.js';
 import { permssionMiddleware, superAdminPermissionMidleware, tenantSubdomainMiddleware } from './modules/@common/Middleware.js';
 import { AddMemberInput, CreateTenantInput } from './modules/tenant/index.js';
+import routers from './modules/router.js';
+import { Container } from './modules/@common/Container.js';
+import Logger from './modules/@common/Logger.js';
 
 const CreateSuperAdmin = async () => {
     const userModule = new UserModuleImpl(db);
@@ -23,14 +26,16 @@ async function main() {
     const app = express();
 
     app.use(express.json());
-
+    const container = new Container(new Map());
     const mediator = new Mediator();
+    container.register('mediator', new Mediator());
+    
     const userModule = new UserModuleImpl(db);
-
+    
     mediator.register('checkInUser', async (input: any) => {
         return userModule.checkInUser(input);
     });
-
+    
     mediator.register('createTenantFail', async (input: CreateTenantInput) => {
         try {
             await userModule.removeUser({
@@ -38,10 +43,10 @@ async function main() {
                 email: input.admin.email,
             })
         } catch (error) {
-            console.error('Failed to rollback user creation after tenant creation failure:', (error as any).message);
+            Logger.error('Failed to rollback user creation after tenant creation failure:', (error as any).message);
         }
     });
-
+    
     mediator.register('addMemberFail', async (input: AddMemberInput) => {
         try {
             await userModule.removeUser({
@@ -49,91 +54,33 @@ async function main() {
                 email: input.email,
             })
         } catch (error) {
-            console.error('Failed to rollback user creation after member addition failure:', (error as any).message);
+            Logger.error('Failed to rollback user creation after member addition failure:', (error as any).message);
         }
     });
-
-    const tenantModule = new TenantModuleImpl(db, mediator, new TenantQuery(db));
-
+    
     await CreateSuperAdmin();
+    //Error Handle middleware
+    app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+        console.log(err);
+        
+        Logger.error(`Error: ${req.method} ${req.url}: ${(err as any).message}`);
 
-    app.post('/tenants', superAdminPermissionMidleware(), async (req, res) => {
-        try {
-            const response = await tenantModule.createTenant(req.body);
+        if (err instanceof Error) {
+            return res.status(400).json({ error: err.message });
+        }        
 
-            res.status(201).json(response);
-        } catch (error) {
-            res.status(400).json({ error: (error as any).message });
-        }
+        res.status(500).json({ error: 'Internal Server Error' });
     });
 
-    app.post('/tenants/:id/users', permssionMiddleware(['tenant:user:read', 'tenant:user:add']), async (req, res) => {
-        try {
-            const response = await tenantModule.addMember({
-                tenantId: req.params.id as string,
-                userId: req.body.id as string,
-                name: req.body.name as string,
-                email: req.body.email as string,
-                role: req.body.role as string,
-            });
-
-            res.status(200).json(response);
-        } catch (error) {
-            res.status(400).json({ error: (error as any).message });
-        }
+    //Logger middleware
+    app.use((req: Request, res: Response, next: NextFunction) => {
+        Logger.info(`Incoming request: ${req.method} ${req.url}`);
+        next();
     });
 
-    app.delete('/tenants/:tenantId/users/:userId', permssionMiddleware(['tenant:user:read', 'tenant:user:remove']), async (req, res) => {
-        try {
-            await tenantModule.removeMember(req.params.tenantId as string, req.params.userId as string);
-            res.status(204).send();
-        } catch (error) {
-            res.status(400).json({ error: (error as any).message });
-        }
-    });
-
-    app.patch('/tenants/:tenantId/users/:userId', permssionMiddleware(['tenant:user:read', 'tenant:user:edit']), async (req, res) => {
-        try {
-            await tenantModule.updateMember(req.params.tenantId as string, req.params.userId as string, req.body.role as string);
-            res.status(204).send();
-        } catch (error) {
-            res.status(400).json({ error: (error as any).message });
-        }
-    });
-
-    app.patch('/tenants/:tenantId/users/:userId', permssionMiddleware(['tenant:user:read', 'tenant:user:edit']), async (req, res) => {
-        try {
-            await tenantModule.updateMember(req.params.tenantId as string, req.params.userId as string, req.body.role as string);
-            res.status(204).send();
-        } catch (error) {
-            res.status(400).json({ error: (error as any).message });
-        }
-    });
-
-    app.get('/tenants/:id', permssionMiddleware(['tenant:details:view']), async (req, res) => {
-        const tenant = await tenantModule.getById(req.params.id as string);
-
-        if (!tenant) {
-            return res.status(404).json({ error: "Tenant não encontrado" });
-        }
-
-        res.status(200).json(tenant);
-    });
-
-    app.get('/tenants', superAdminPermissionMidleware(), async (req, res) => {
-        const tenants = await tenantModule.list();
-
-        res.status(200).json(tenants);
-    });
-
-    app.post('/users', async (req, res) => {
-        try {
-            const result = await userModule.login({ email: req.body.email });
-
-            res.status(200).json(result);
-        } catch (error) {
-            res.status(400).json({ error: (error as any).message });
-        }
+    routers.forEach((routerHandler, path) => {
+        Logger.info(`Registering router for path: ${path}`);
+        app.use(path, routerHandler(container));
     });
 
     app.get("/", tenantSubdomainMiddleware, (req, res) => {

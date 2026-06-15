@@ -13,6 +13,7 @@ export default class Login {
 
         await this._userRepository.save(user);
 
+        //TODO: ADD JWT TOKEN
         return { userId: user.id, name: user.name, isSuperAdmin: user.isSuperAdmin };
     }
 }
