@@ -9,6 +9,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start:dev": "nodemon --watch src --exec tsx src/main.ts",
+    "frontend:dev": "cd frontend && npm run dev",
     "build": "tsc",
     "start": "drizzle-kit push && node dist/main.js"
   },
@@ -31,6 +32,8 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.21.0",
-    "winston": "^3.19.0"
+    "react-router-dom": "^7.18.0",
+    "winston": "^3.19.0",
+    "zod": "^4.4.3"
   }
 }

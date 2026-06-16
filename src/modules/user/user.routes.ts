@@ -8,7 +8,7 @@ const UserRoutes = (container: Container) => {
     const userRoutes = Router();
     const userModule = new UserModuleImpl(db);
 
-    userRoutes.post('/', async (req, res) => {
+    userRoutes.post('/', async (req, res) => {        
         const result = await userModule.login({ email: req.body.email });
 
         res.status(200).json(result);

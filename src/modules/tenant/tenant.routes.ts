@@ -17,7 +17,7 @@ const TetantRoutes = (Container: Container) => {
 
     });
 
-    tenantRouter.post('//:id/users', permssionMiddleware(['tenant:user:read', 'tenant:user:add']), async (req, res) => {
+    tenantRouter.post('/:id/users', permssionMiddleware(['tenant:user:read', 'tenant:user:add']), async (req, res) => {
         const response = await tenantModule.addMember({
             tenantId: req.params.id as string,
             userId: req.body.id as string,
