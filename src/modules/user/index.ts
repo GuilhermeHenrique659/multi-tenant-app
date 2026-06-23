@@ -32,4 +32,5 @@ export interface UserModule {
     removeUser(input: RemoveUserInput): Promise<void>;
     createSuperUser(input: CreateUserInput): Promise<void>;
     login(input: LoginInput): Promise<LoginOutput>;
+    hasPermissions(userId: string, tenantId: string, permission: Array<string>): Promise<boolean>;
 }

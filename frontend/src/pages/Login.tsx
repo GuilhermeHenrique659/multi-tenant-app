@@ -1,7 +1,7 @@
 import { useRef, type SubmitEvent } from "react";
-import { User } from "../model/User";
 import { email } from "zod";
 import { Navigate, useNavigate } from "react-router-dom";
+import { Create, Update } from "../model/User";
 
 export default function Login() {
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -13,8 +13,7 @@ export default function Login() {
     if (!formRef.current) return;
 
     const formData = new FormData(formRef.current);
-    const user = User.create(Object.fromEntries(formData.entries()));
-    console.log(JSON.stringify(user.props));
+    const user = Create(Object.fromEntries(formData.entries()));
 
     const response = await fetch("api/users", {
       method: "POST",
@@ -32,13 +31,13 @@ export default function Login() {
 
     if (!response) return;
 
-    user.performLogin({
+    const userUpdated = Update({
       id: response.userId as string,
       name: response.name as string,
       email: user.props.email,
     });
 
-    localStorage.setItem("user", JSON.stringify(user.props));
+    localStorage.setItem("user", JSON.stringify(userUpdated));
 
     navigate("/");
   };

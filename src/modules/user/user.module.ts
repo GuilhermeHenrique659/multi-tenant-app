@@ -5,6 +5,10 @@ import UserRepositoryDatabase from "./repository/UserRepositoryDatabase.js";
 import RemoveUser from "./application/RemoveUser.js";
 import CreateSuperAdmin from "./application/CreateSuperAdmin.js";
 import Login from "./application/Login.js";
+import TenantQuery from "../tenant/query/TenantQuery.js";
+import UserQuery from "./query/UserQuery.js";
+import { db } from "../../db/config.js";
+import { Permissions } from "../@common/Permissions.js";
 
 export default class UserModuleImpl implements UserModule {
     constructor(private readonly _db: NodePgDatabase) { }
@@ -36,6 +40,17 @@ export default class UserModuleImpl implements UserModule {
         return this._db.transaction(async (tx) => {
             const userRepository = new UserRepositoryDatabase(tx);
             await new CreateSuperAdmin(userRepository).execute(input.name, input.email);
+        });
+    }
+
+    async hasPermissions(userId: string, tenantId: string, permissions: Array<string>): Promise<boolean> {
+        const userRole = await new UserQuery(db).getUserRoleByTenantIdAndUserId(tenantId, userId);
+
+        if (!userRole) return false;
+
+        return permissions.every(permission => {
+            const allowedRoles = Permissions.get(permission);
+            return allowedRoles?.includes(userRole!) || false;
         });
     }
 }

@@ -4,7 +4,8 @@ import { db } from "../../db/config.js";
 import { eq } from "drizzle-orm";
 import TenantQuery from "../tenant/query/TenantQuery.js";
 import { Permissions } from "./Permissions.js";
-import UserQuery from "../user/query/UserQuery.js";
+import UserQuery, { UserType } from "../user/query/UserQuery.js";
+import UserModuleImpl from "../user/user.module.js";
 
 export const tenantSubdomainMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     const host = req.headers.host;
@@ -37,7 +38,7 @@ export const tenantSubdomainMiddleware = async (req: Request, res: Response, nex
     next();
 }
 
-export const superAdminPermissionMidleware = () => async (req: Request, res: Response, next: NextFunction) => {
+export const authenticationMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.headers['x-user-id'];
 
     if (!userId) {
@@ -49,6 +50,13 @@ export const superAdminPermissionMidleware = () => async (req: Request, res: Res
     if (!user) {
         return res.status(401).json({ error: "User not found" });
     }
+
+    (req as unknown as Record<string, unknown>).user = user;
+    next();
+}
+
+export const superAdminPermissionMidleware = () => async (req: Request, res: Response, next: NextFunction) => {
+    const user = (req as unknown as Record<string, unknown>).user as UserType;
 
     if (user.isSuperAdmin) return next();
 
@@ -58,11 +66,7 @@ export const superAdminPermissionMidleware = () => async (req: Request, res: Res
 }
 
 export const permssionMiddleware = (permisssions: string[]) => async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.headers['x-user-id'];
-
-    if (!userId) {
-        return res.status(401).json({ error: "User ID is required in x-user-id header" });
-    }
+    const user = (req as unknown as Record<string, unknown>).user as UserType;
 
     const tenant = req.headers['x-tenant-id'];
 
@@ -70,24 +74,9 @@ export const permssionMiddleware = (permisssions: string[]) => async (req: Reque
         return res.status(400).json({ error: "Tenant ID is required in x-tenant-id header" });
     }
 
-    const user = await new UserQuery(db).getById(String(userId) as string);
-
-    if (!user) {
-        return res.status(401).json({ error: "User not found" });
-    }
-
     if (user.isSuperAdmin) return next();
 
-    const userRole = await new TenantQuery(db).getUserRoleByTenantIdAndUserId(String(tenant) as string, String(userId) as string);
-
-    if (!userRole) {
-        return res.status(403).json({ error: "User does not have access to this tenant" });
-    }
-
-    const hasAllPermissions = permisssions.every(permission => {
-        const allowedRoles = Permissions.get(permission);
-        return allowedRoles?.includes(userRole!) || false;
-    });
+    const hasAllPermissions = await new UserModuleImpl(db).hasPermissions(String(tenant) as string, String(user.id) as string, permisssions);
 
     if (!hasAllPermissions) {
         return res.status(403).json({

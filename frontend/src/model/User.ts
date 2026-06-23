@@ -8,25 +8,20 @@ const UserSchema = z.object({
 
 export type UserProps = z.infer<typeof UserSchema>;
 
-export class User {
-    readonly props: UserProps
+export type User = Readonly<{
+    props: Readonly<UserProps>;
+}>;
 
-    constructor(props: UserProps) {
-        this.props = props;
-    }
+export const Create = (props: Record<string, unknown>): User => {
+    const validatedProps = UserSchema.parse({
+        id: props.id,
+        email: props.email,
+        name: props.name || 'Default Name',
+    });
 
-    static create(props: Record<string, unknown>): User {
-        const validatedProps = UserSchema.parse({
-            email: props.email,
-            name: props.name || 'Default Name',
-        });
+    return { props: validatedProps };
+}
 
-        return new User(validatedProps);
-    }
-
-    public performLogin(user: UserProps) {
-        this.props.id = user.id;
-        this.props.name = user.name;
-        this.props.email = user.email;
-    }
+export const Update = (props: UserProps): User => {
+    return { props: props };
 }

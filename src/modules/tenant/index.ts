@@ -40,5 +40,4 @@ export interface TenantModule {
     updateMember(tenantId: string, userId: string, role: string): Promise<void>;
     list(): Promise<Omit<TenantData, 'members'>[]>;
     getById(tenantId: string): Promise<TenantData | null>;
-    getUserRole(tenantId: string, userId: string): Promise<string | null>;
 }

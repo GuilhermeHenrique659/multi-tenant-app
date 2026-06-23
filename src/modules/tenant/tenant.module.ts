@@ -22,7 +22,7 @@ export default class TenantModuleImpl implements TenantModule {
             const createTenant = new CreateTenant(tenantRepository, this._mediator);
             try {
                 return await createTenant.execute(input);
-            } catch(err) {
+            } catch (err) {
                 await this._mediator.notify('createTenantFail', input);
 
                 throw err;
@@ -69,15 +69,11 @@ export default class TenantModuleImpl implements TenantModule {
         });
     }
 
-    list(): Promise<Omit<TenantData, 'members'>[]> {
+    async list(): Promise<Omit<TenantData, 'members'>[]> {
         return this._tenantQuery.getAllTenants();
     }
 
-    getById(tenantId: string): Promise<TenantData | null> {
+    async getById(tenantId: string): Promise<TenantData | null> {
         return this._tenantQuery.getTenantDataById(tenantId);
-    }
-
-    getUserRole(tenantId: string, userId: string): Promise<string | null> {
-        return this._tenantQuery.getUserRoleByTenantIdAndUserId(tenantId, userId);
     }
 }
