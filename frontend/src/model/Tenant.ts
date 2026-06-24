@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { User } from "./User";
+import { createStore } from "./common/Storage";
 
 const Role = ['member', 'admin'];
 
@@ -26,6 +27,10 @@ export type Tenant = Readonly<{
     props: TenantBaseProp;
     members: ReadonlyArray<TenantMember>;
 }>
+
+export type TenantCollection = {
+    tenants: Tenant[];
+};
 
 export const AddUser = (tenent: Tenant, user: User, role: string): Tenant => {
     if (tenent.members.length >= tenent.props.maxNumberOfMembers) throw new Error('Tenant max user reached')
@@ -71,3 +76,5 @@ export const From = (data: any): Tenant | null => {
         members: members.filter(m => m.success).map((m) => m.data),
     };
 }
+
+export const tenantsStore = createStore<TenantCollection>({ tenants: [] }); 

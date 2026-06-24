@@ -7,8 +7,8 @@ import { Container } from "../@common/Container.js";
 import UserModuleImpl from "../user/user.module.js";
 import { UserType } from "../user/query/UserQuery.js";
 
-const TetantRoutes = (Container: Container) => {
-    const tenantModule = new TenantModuleImpl(db, Container.get('mediator'), new TenantQuery(db));
+const TetantRoutes = (container: Container) => {
+    const tenantModule = new TenantModuleImpl(db, container.get('mediator'), new TenantQuery(db));
 
     const tenantRouter = Router();
 
@@ -22,7 +22,7 @@ const TetantRoutes = (Container: Container) => {
     tenantRouter.post('/:id/users', authenticationMiddleware, permssionMiddleware(['tenant:user:read', 'tenant:user:add']), async (req, res) => {
         const response = await tenantModule.addMember({
             tenantId: req.params.id as string,
-            userId: req.body.id as string,
+            userId: req.body.id as string | undefined,
             name: req.body.name as string,
             email: req.body.email as string,
             role: req.body.role as string,

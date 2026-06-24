@@ -32,7 +32,7 @@ async function main() {
     app.use(express.json());
     const container = new Container(new Map());
     const mediator = new Mediator();
-    container.register('mediator', new Mediator());
+    container.register('mediator', mediator);
 
     const userModule = new UserModuleImpl(db);
 
@@ -78,7 +78,7 @@ async function main() {
 
     //Logger middleware
     app.use((req: Request, res: Response, next: NextFunction) => {
-        Logger.info(`Incoming request: ${req.method} ${req.url}`);        
+        Logger.info(`Incoming request: ${req.method} ${req.url}`);
         next();
     });
 

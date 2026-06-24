@@ -22,6 +22,11 @@ export type AddMemberInput = {
     tenantId: string;
 } & TenantMember;
 
+export type AddmemberOutput = {
+    tenantId: string;
+    userId: string;
+}
+
 export type CreateTenantInput = {
     name: string;
     subdomain: string;
@@ -31,13 +36,4 @@ export type CreateTenantInput = {
 
 export type CreateTenantOutput = {
     tenantId: string;
-}
-
-export interface TenantModule {
-    createTenant(input: CreateTenantInput): Promise<CreateTenantOutput>;
-    addMember(input: AddMemberInput): Promise<AddMemberInput>;
-    removeMember(tenantId: string, userId: string): Promise<void>;
-    updateMember(tenantId: string, userId: string, role: string): Promise<void>;
-    list(): Promise<Omit<TenantData, 'members'>[]>;
-    getById(tenantId: string): Promise<TenantData | null>;
 }

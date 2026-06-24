@@ -1,32 +1,52 @@
 import { useEffect, useState } from "react";
 import FetchHttpClient from "../gateway/FetchHttpClient";
 import TenantHttpGateway from "../gateway/tenant/TenantHttpGateway";
-import { AddUser, RemoveUser, type Tenant } from "../model/Tenant";
-import { Create } from "../model/User";
+import { RemoveUser, tenantsStore, type Tenant } from "../model/Tenant";
+import { Create, type User } from "../model/User";
+import {
+  useTenant,
+  useTenantActions,
+  useTenantStore,
+} from "../hook/useTenants";
+import type UserGateway from "../gateway/user/UserGateway";
+import { AddMember } from "../application/tenant/AddMember";
+
+class MockUser implements UserGateway {
+  async getByName(name: string): Promise<User | null> {
+    return Create({
+      name: "test",
+      email: "test@gmail.com",
+      id: "f0169313-d64e-4065-8085-21e9b5e4c380", //place holder,
+    });
+  }
+}
 
 type Props = {
   tenant: Tenant;
   onClose: () => void;
-  onChange: (tenant: Tenant) => void;
 };
 
-function TenantModal({ tenant, onClose, onChange }: Props) {
-  const handleAddUser = () => {
-    try {
-      const updated = AddUser(
-        tenant,
-        Create({
+function TenantModal({ tenant, onClose }: Props) {
+  const tenentActions = useTenantActions();
+
+  const addMemeber = AddMember({
+    tenantGateway: new TenantHttpGateway(new FetchHttpClient()),
+    userGateway: new MockUser(),
+  });
+
+  const handleAddUser = async () => {
+    const updated = await addMemeber({
+      tenant,
+      member: {
+        user: {
           name: "test",
           email: "test@gmail.com",
-          id: crypto.randomUUID(), //place holder,
-        }),
-        "member",
-      );
-
-      onChange(updated);
-    } catch (err) {
-      alert(err);
-    }
+        },
+        role: "member",
+      },
+    });
+    if (updated instanceof Error) alert(updated);
+    else tenentActions.updateTenant(updated);
   };
 
   const handleRemoveUser = (userId?: string) => () => {
@@ -35,7 +55,7 @@ function TenantModal({ tenant, onClose, onChange }: Props) {
     try {
       const updated = RemoveUser(tenant, userId);
 
-      onChange(updated);
+      tenentActions.updateTenant(updated);
     } catch (err) {
       alert(err);
     }
@@ -64,14 +84,17 @@ function TenantModal({ tenant, onClose, onChange }: Props) {
 }
 
 export default function Home() {
-  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const tenantsCollection = useTenantStore((s) => s);
+  const tenentActions = useTenantActions();
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const selectedTenant = useTenant(selectedTenantId);
 
   const tenantGateway = new TenantHttpGateway(new FetchHttpClient());
 
   useEffect(() => {
-    tenantGateway.getList().then(setTenants);
+    tenantGateway
+      .getList()
+      .then((tenants) => tenantsStore.setState(() => ({ tenants })));
   }, []);
 
   const showTenantDetails = (tenantId: string) => async () => {
@@ -79,11 +102,8 @@ export default function Home() {
 
     if (!tenant) return;
 
-    setTenants((tenants) =>
-      tenants.map((t) => (t.props.id === tenantId ? tenant : t)),
-    );
+    tenentActions.updateTenant(tenant);
 
-    setIsModalOpen(true);
     setSelectedTenantId(tenant.props.id);
   };
 
@@ -92,7 +112,7 @@ export default function Home() {
       <h1>Home</h1>
 
       <p>Lista</p>
-      {tenants.map((tenant) => {
+      {tenantsCollection.tenants.map((tenant) => {
         return (
           <div key={tenant.props.id}>
             <p>{tenant.props.name}</p>
@@ -103,15 +123,10 @@ export default function Home() {
         );
       })}
 
-      {isModalOpen && selectedTenantId ? (
+      {selectedTenant ? (
         <TenantModal
-          tenant={tenants.find((t) => t.props.id === selectedTenantId)!}
+          tenant={selectedTenant}
           onClose={() => setSelectedTenantId(null)}
-          onChange={(tenant) =>
-            setTenants((tenants) =>
-              tenants.map((t) => (t.props.id === tenant.props.id ? tenant : t)),
-            )
-          }
         />
       ) : (
         <></>

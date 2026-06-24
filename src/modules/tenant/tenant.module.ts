@@ -1,5 +1,5 @@
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { AddMemberInput, CreateTenantInput, CreateTenantOutput, TenantData, TenantModule } from "./index.js";
+import { AddMemberInput, AddmemberOutput, CreateTenantInput, CreateTenantOutput, TenantData } from "./index.js";
 import TenantRepository from "./repository/TenantRepository.js";
 import TenantRepositoryDatabase from "./repository/TenantRepositoryDatabase.js";
 import Mediator from "../@common/Mediator.js";
@@ -9,7 +9,7 @@ import RemoveMember from "./application/RemoveMember.js";
 import UpdateMember from "./application/UpdateMember..js";
 import TenantQuery from "./query/TenantQuery.js";
 
-export default class TenantModuleImpl implements TenantModule {
+export default class TenantModuleImpl {
     constructor(
         private readonly _db: NodePgDatabase,
         private readonly _mediator: Mediator,
@@ -30,12 +30,12 @@ export default class TenantModuleImpl implements TenantModule {
         });
     }
 
-    async addMember(input: AddMemberInput): Promise<AddMemberInput> {
+    async addMember(input: AddMemberInput): Promise<AddmemberOutput> {
         return this._db.transaction(async (tx) => {
             const tenantRepository = new TenantRepositoryDatabase(tx);
             const addUserToTenant = new AddUserToTenant(tenantRepository, this._mediator);
             try {
-                await addUserToTenant.execute({
+                return await addUserToTenant.execute({
                     tenantId: input.tenantId,
                     user: {
                         id: input.userId,
@@ -44,8 +44,7 @@ export default class TenantModuleImpl implements TenantModule {
                     },
                     role: input.role,
                 });
-                return input;
-            } catch (err) {
+            } catch (err) {               
                 await this._mediator.notify('addMemberFail', input);
                 throw err;
             }

@@ -1,5 +1,5 @@
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { CheckInInput, CheckInOutput, CreateUserInput, LoginInput, LoginOutput, RemoveUserInput, UserModule } from "./index.js";
+import { CheckInInput, CheckInOutput, CreateUserInput, LoginInput, LoginOutput, RemoveUserInput } from "./index.js";
 import CheckIn from "./application/CheckIn.js";
 import UserRepositoryDatabase from "./repository/UserRepositoryDatabase.js";
 import RemoveUser from "./application/RemoveUser.js";
@@ -10,7 +10,7 @@ import UserQuery from "./query/UserQuery.js";
 import { db } from "../../db/config.js";
 import { Permissions } from "../@common/Permissions.js";
 
-export default class UserModuleImpl implements UserModule {
+export default class UserModuleImpl {
     constructor(private readonly _db: NodePgDatabase) { }
 
     async login(input: LoginInput): Promise<LoginOutput> {

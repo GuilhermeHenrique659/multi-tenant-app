@@ -24,7 +24,13 @@ export default class TenantHttpGateway implements TenantGateway {
         return From(tenant)
     }
 
-    public async addUser(tenantId: string, user: User) {
+    public async addUser(tenantId: string, user: User, role: string) {
+        const tenant = await this._httpClient.post<any | null>(`api/tenants/${tenantId}/users`, {
+            userId: user.props.id,
+            name: user.props.name,
+            email: user.props.email,
+            role: role,
+        }, { headers: { 'x-tenant-id': tenantId } });
 
     }
 

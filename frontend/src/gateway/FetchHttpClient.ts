@@ -1,3 +1,4 @@
+import he from "zod/v4/locales/he.cjs";
 import type { UserProps } from "../model/User";
 import type HttpClient from "./HttpClient";
 
@@ -28,7 +29,7 @@ export default class FetchHttpClient implements HttpClient {
         const user = this._getUser();
         const headers: HeadersInit | undefined = user ? { ...options?.headers, 'x-user-id': user.id as string } : options?.headers;
 
-        return await fetch(url, { method: "POST", body, ...options, headers })
+        return await fetch(url, { method: "POST", body: JSON.stringify(body), ...options, headers: { ...headers, "Content-Type": "application/json", } })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -53,7 +54,7 @@ export default class FetchHttpClient implements HttpClient {
     async delete<T>(url: string, options?: RequestInit): Promise<T> {
         const user = this._getUser();
         const headers: HeadersInit | undefined = user ? { ...options?.headers, 'x-user-id': user.id as string } : options?.headers;
-        
+
         return await fetch(url, { method: "DELETE", ...options, headers })
             .then(response => {
                 if (!response.ok) {
