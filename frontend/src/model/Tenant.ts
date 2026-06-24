@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { User } from "./User";
 import { createStore } from "./common/Storage";
+import { ModelCollection } from "./common/Collection";
 
 const Role = ['member', 'admin'];
 
@@ -28,8 +29,10 @@ export type Tenant = Readonly<{
     members: ReadonlyArray<TenantMember>;
 }>
 
+type TenantId = string;
+
 export type TenantCollection = {
-    tenants: Tenant[];
+    tenants: ModelCollection<TenantId, Tenant>;
 };
 
 export const AddUser = (tenent: Tenant, user: User, role: string): Tenant => {
@@ -77,4 +80,4 @@ export const From = (data: any): Tenant | null => {
     };
 }
 
-export const tenantsStore = createStore<TenantCollection>({ tenants: [] }); 
+export const tenantsStore = createStore<TenantCollection>({ tenants: new ModelCollection(new Map()) }); 

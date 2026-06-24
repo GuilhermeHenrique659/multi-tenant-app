@@ -10,6 +10,8 @@ import {
 } from "../hook/useTenants";
 import type UserGateway from "../gateway/user/UserGateway";
 import { AddMember } from "../application/tenant/AddMember";
+import { ModelToMapFn } from "../util/ArrayUtil";
+import { ModelCollection } from "../model/common/Collection";
 
 class MockUser implements UserGateway {
   async getByName(name: string): Promise<User | null> {
@@ -94,7 +96,11 @@ export default function Home() {
   useEffect(() => {
     tenantGateway
       .getList()
-      .then((tenants) => tenantsStore.setState(() => ({ tenants })));
+      .then((tenants) =>
+        tenantsStore.setState(() => ({
+          tenants: ModelCollection.from(tenants, ModelToMapFn),
+        })),
+      );
   }, []);
 
   const showTenantDetails = (tenantId: string) => async () => {
@@ -112,7 +118,7 @@ export default function Home() {
       <h1>Home</h1>
 
       <p>Lista</p>
-      {tenantsCollection.tenants.map((tenant) => {
+      {tenantsCollection.tenants.values().map((tenant) => {
         return (
           <div key={tenant.props.id}>
             <p>{tenant.props.name}</p>
