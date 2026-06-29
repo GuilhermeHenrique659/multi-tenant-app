@@ -12,14 +12,17 @@ import type UserGateway from "../gateway/user/UserGateway";
 import { AddMember } from "../application/tenant/AddMember";
 import { ModelToMapFn } from "../util/ArrayUtil";
 import { ModelCollection } from "../model/common/Collection";
+import { Result, unwrapOrElse } from "../util/Result";
 
 class MockUser implements UserGateway {
-  async getByName(name: string): Promise<User | null> {
-    return Create({
-      name: "test",
-      email: "test@gmail.com",
-      id: "f0169313-d64e-4065-8085-21e9b5e4c380", //place holder,
-    });
+  async getByName(_name: string): Promise<Result<User>> {
+    return Result.Ok(
+      Create({
+        name: "test",
+        email: "test@gmail.com",
+        id: "f0169313-d64e-4065-8085-21e9b5e4c380", //place holder,
+      }),
+    );
   }
 }
 
@@ -46,18 +49,18 @@ function TenantModal({ tenant, onClose }: Props) {
         },
         role: "member",
       },
-    });
-    if (updated instanceof Error) alert(updated);
-    else tenentActions.updateTenant(updated);
+    }).then(unwrapOrElse(alert));
+
+    if (updated) tenentActions.updateTenant(updated);
   };
 
   const handleRemoveUser = (userId?: string) => () => {
     if (!userId) return;
 
     try {
-      const updated = RemoveUser(tenant, userId);
+      const updated = RemoveUser(tenant, userId).unwrapOrElse(alert);
 
-      tenentActions.updateTenant(updated);
+      if (updated) tenentActions.updateTenant(updated);
     } catch (err) {
       alert(err);
     }
@@ -94,17 +97,17 @@ export default function Home() {
   const tenantGateway = new TenantHttpGateway(new FetchHttpClient());
 
   useEffect(() => {
-    tenantGateway
-      .getList()
-      .then((tenants) =>
-        tenantsStore.setState(() => ({
-          tenants: ModelCollection.from(tenants, ModelToMapFn),
-        })),
-      );
+    tenantGateway.getList().then((tenants) =>
+      tenantsStore.setState(() => ({
+        tenants: ModelCollection.from(tenants.unwrapOr([]), ModelToMapFn),
+      })),
+    );
   }, []);
 
   const showTenantDetails = (tenantId: string) => async () => {
-    const tenant = await tenantGateway.getById(tenantId);
+    const tenant = await tenantGateway
+      .getById(tenantId)
+      .then(unwrapOrElse(alert));
 
     if (!tenant) return;
 

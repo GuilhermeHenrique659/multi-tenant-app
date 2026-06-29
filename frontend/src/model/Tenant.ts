@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { User } from "./User";
 import { createStore } from "./common/Storage";
 import { ModelCollection } from "./common/Collection";
+import { Result } from "../util/Result";
 
 const Role = ['member', 'admin'];
 
@@ -35,9 +36,9 @@ export type TenantCollection = {
     tenants: ModelCollection<TenantId, Tenant>;
 };
 
-export const AddUser = (tenent: Tenant, user: User, role: string): Tenant => {
-    if (tenent.members.length >= tenent.props.maxNumberOfMembers) throw new Error('Tenant max user reached')
-    if (tenent.members.some(member => member.user.id === user.props.id)) throw new Error('User already add in Tenant');
+export const AddUser = (tenent: Tenant, user: User, role: string): Result<Tenant, Error> => {
+    if (tenent.members.length >= tenent.props.maxNumberOfMembers) return Result.Error(new Error('Tenant max user reached'));
+    if (tenent.members.some(member => member.user.id === user.props.id)) return Result.Error(new Error('User already add in Tenant'));
 
     const newMember = TenantMemberSchema.safeParse({
         role: role,
@@ -48,23 +49,23 @@ export const AddUser = (tenent: Tenant, user: User, role: string): Tenant => {
         }
     });
 
-    if (!newMember.success) return tenent;
+    if (!newMember.success) return Result.Error(new Error('Invalid member data'));
 
-    return {
+    return Result.Ok({
         props: tenent.props,
         members: [...tenent.members, newMember.data]
-    }
+    });
 }
 
-export const RemoveUser = (tenent: Tenant, userId: string): Tenant => {
+export const RemoveUser = (tenent: Tenant, userId: string): Result<Tenant, Error> => {
     if (!tenent.members.some(member => member.user.id === userId)) {
-        throw new Error('User is not in this tenant');
+        return Result.Error(new Error('User is not in this tenant'));
     }
 
-    return {
+    return Result.Ok({
         props: tenent.props,
         members: tenent.members.filter((member) => member.user.id !== userId),
-    }
+    });
 }
 
 export const From = (data: any): Tenant | null => {
@@ -80,4 +81,4 @@ export const From = (data: any): Tenant | null => {
     };
 }
 
-export const tenantsStore = createStore<TenantCollection>({ tenants: new ModelCollection(new Map()) }); 
+export const tenantsStore = createStore<TenantCollection>({ tenants: new ModelCollection(new Map()) });

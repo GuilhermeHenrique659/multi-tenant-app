@@ -2,6 +2,7 @@ import type TenantGateway from "../../gateway/tenant/TenantGateway";
 import type UserGateway from "../../gateway/user/UserGateway";
 import * as TenantMod from '../../model/Tenant';
 import * as UserMod from '../../model/User';
+import { Result, unwrapOr } from "../../util/Result";
 
 type AddMemberDependencies = {
     tenantGateway: TenantGateway,
@@ -16,32 +17,35 @@ type AddMemberInput = {
     tenant: TenantMod.Tenant;
 }
 
-const GetUser = (dependencies: AddMemberDependencies) => async (user: AddMemberInput['member']['user']): Promise<UserMod.User> => {
-    if (user.id) return UserMod.Create(user);
+const GetUser = (dependencies: AddMemberDependencies) => async (user: AddMemberInput['member']['user']): Promise<Result<UserMod.User, Error>> => {
+    if (user.id) return Result.Ok(UserMod.Create(user));
 
-    const existingUser = await dependencies.userGateway.getByName(user.name);
+    const result = await dependencies.userGateway.getByName(user.name);
 
-    if (existingUser) return existingUser;
+    if (result.isOk()) {
+        return Result.Ok(result.value);
+    }
 
-    return UserMod.Create({ name: user.name, email: user.email });
+    return Result.Ok(UserMod.Create({ name: user.name, email: user.email }));
 }
 
-export const AddMember = (dependencies: AddMemberDependencies) => async (input: AddMemberInput): Promise<TenantMod.Tenant | Error> => {
-    try {
-        const user = await GetUser(dependencies)(input.member.user);
+export const AddMember = (dependencies: AddMemberDependencies) => async (input: AddMemberInput): Promise<Result<TenantMod.Tenant, Error>> => {
+    const userResult = await GetUser(dependencies)(input.member.user);
 
-        const updated = TenantMod.AddUser(input.tenant, user, input.member.role);
-        
-        await dependencies.tenantGateway.addUser(updated.props.id, user, input.member.role);
+    if (userResult.isErr()) return Result.Error(userResult.error);
 
-        const tenant = await dependencies.tenantGateway.getById(input.tenant.props.id);
+    const user = userResult.unwrap();
 
-        if (!tenant) return updated;
+    const updatedResult = TenantMod.AddUser(input.tenant, user, input.member.role);
 
-        return tenant;
-    } catch (err) {
-        if (err instanceof Error) return err;
+    if (updatedResult.isErr()) return Result.Error(updatedResult.error);
 
-        return new Error('unknown error')
-    }
+    const addUserResult = await dependencies.tenantGateway.addUser(updatedResult.unwrap().props.id, user, input.member.role);
+
+    if (addUserResult.isErr()) return Result.Error(addUserResult.error);
+
+
+    const tenantUpdated = await dependencies.tenantGateway.getById(input.tenant.props.id).then(unwrapOr(updatedResult.unwrap()));
+
+    return Result.Ok(tenantUpdated);
 }

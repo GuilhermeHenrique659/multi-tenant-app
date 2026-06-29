@@ -1,6 +1,5 @@
 import { useRef, type SubmitEvent } from "react";
-import { email } from "zod";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Create, Update } from "../model/User";
 
 export default function Login() {
