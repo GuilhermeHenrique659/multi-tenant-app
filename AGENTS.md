@@ -12,7 +12,13 @@ Backend (run from repo root):
 
 Frontend (run from `frontend/`): `npm run dev`, `npm run build` (`tsc -b && vite build`), `npm run lint` (eslint).
 
-There is **no test suite** — the root `test` script is a failing stub. Don't assume tests exist.
+## Tests
+
+- **Runner**: Node.js built-in (`node:test` + `node:assert/strict`). Run with `npm test`.
+- **Co-located**: each `*.spec.ts` sits next to the file it tests (e.g. `domain/Tenant.spec.ts` next to `domain/Tenant.ts`).
+- **Fakes** implement repository interfaces for integration tests, placed next to the real repository (`repository/FakeTenantRepository.ts`).
+- Application tests use the real `Mediator` + real use cases wired to fake repositories.
+- Test files are excluded from `tsc` build via `"exclude": ["src/**/*.spec.ts"]` in `tsconfig.json`.
 
 ## Critical conventions
 
