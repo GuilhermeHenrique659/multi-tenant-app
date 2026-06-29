@@ -1,30 +1,18 @@
 import { useEffect, useState } from "react";
 import FetchHttpClient from "../gateway/FetchHttpClient";
 import TenantHttpGateway from "../gateway/tenant/TenantHttpGateway";
-import { RemoveUser, tenantsStore, type Tenant } from "../model/Tenant";
-import { Create, type User } from "../model/User";
+import UserHttpGateway from "../gateway/user/UserHttpGateway";
+import { tenantsStore, type Tenant } from "../model/Tenant";
 import {
   useTenant,
   useTenantActions,
   useTenantStore,
 } from "../hook/useTenants";
-import type UserGateway from "../gateway/user/UserGateway";
 import { AddMember } from "../application/tenant/AddMember";
+import { RemoveMember } from "../application/tenant/RemoveMember";
 import { ModelToMapFn } from "../util/ArrayUtil";
 import { ModelCollection } from "../model/common/Collection";
-import { Result, unwrapOrElse } from "../util/Result";
-
-class MockUser implements UserGateway {
-  async getByName(_name: string): Promise<Result<User>> {
-    return Result.Ok(
-      Create({
-        name: "test",
-        email: "test@gmail.com",
-        id: "f0169313-d64e-4065-8085-21e9b5e4c380", //place holder,
-      }),
-    );
-  }
-}
+import { unwrapOrElse } from "../util/Result";
 
 type Props = {
   tenant: Tenant;
@@ -33,44 +21,96 @@ type Props = {
 
 function TenantModal({ tenant, onClose }: Props) {
   const tenentActions = useTenantActions();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("member");
+
+  const httpClient = new FetchHttpClient();
+  const tenantGateway = new TenantHttpGateway(httpClient);
 
   const addMemeber = AddMember({
-    tenantGateway: new TenantHttpGateway(new FetchHttpClient()),
-    userGateway: new MockUser(),
+    tenantGateway,
+    userGateway: new UserHttpGateway(httpClient),
   });
 
+  const removeMember = RemoveMember({ tenantGateway });
+
   const handleAddUser = async () => {
+    if (!name || !email) {
+      alert("Name and email are required");
+      return;
+    }
+
     const updated = await addMemeber({
       tenant,
       member: {
-        user: {
-          name: "test",
-          email: "test@gmail.com",
-        },
-        role: "member",
+        user: { name, email },
+        role,
       },
     }).then(unwrapOrElse(alert));
 
-    if (updated) tenentActions.updateTenant(updated);
+    if (updated) {
+      tenentActions.updateTenant(updated);
+      setName("");
+      setEmail("");
+      setRole("member");
+    }
   };
 
-  const handleRemoveUser = (userId?: string) => () => {
+  const handleRemoveUser = (userId?: string) => async () => {
     if (!userId) return;
 
-    try {
-      const updated = RemoveUser(tenant, userId).unwrapOrElse(alert);
+    const updated = await removeMember({ tenant, userId }).then(
+      unwrapOrElse(alert),
+    );
 
-      if (updated) tenentActions.updateTenant(updated);
-    } catch (err) {
-      alert(err);
-    }
+    if (updated) tenentActions.updateTenant(updated);
   };
 
   return (
     <dialog open>
       <h1>{tenant.props.name}</h1>
 
-      <button onClick={handleAddUser}>Add user</button>
+      <h2>Add member</h2>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleAddUser();
+        }}
+      >
+        <div>
+          <label>
+            Name:
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </label>
+        </div>
+        <div>
+          <label>
+            Email:
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
+        </div>
+        <div>
+          <label>
+            Role:
+            <select value={role} onChange={(e) => setRole(e.target.value)}>
+              <option value="member">Member</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+        </div>
+        <button type="submit">Add user</button>
+      </form>
 
       <p>Lista de membros</p>
       {tenant.members.map((member, index) => (

@@ -81,6 +81,10 @@ export default class FetchHttpClient implements HttpClient {
                 return Result.Error(new Error(`HTTP error! status: ${response.status}`));
             }
 
+            if (response.status === 204) {
+                return Result.Ok(undefined as T);
+            }
+
             const data = await response.json() as T;
             return Result.Ok(data);
         } catch (err) {

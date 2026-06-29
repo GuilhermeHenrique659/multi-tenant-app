@@ -40,4 +40,19 @@ export default class UserQuery {
             isSuperAdmin: result.isSuperAdmin,
         };
     }
+
+    public async getByName(name: string): Promise<UserType | null> {
+        const result = await this._db.select().from(UserTable).where(eq(UserTable.name, name)).limit(1);
+
+        if (!result[0]) return null;
+
+        return {
+            id: result[0].id,
+            name: result[0].name,
+            email: result[0].email,
+            createdAt: result[0].createdAt,
+            isActive: result[0].isActive,
+            isSuperAdmin: result[0].isSuperAdmin,
+        };
+    }
 }

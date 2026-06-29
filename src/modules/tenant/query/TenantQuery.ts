@@ -48,7 +48,7 @@ export default class TenantQuery {
     public async getTenantDataById(tenantId: string): Promise<TenantData | null> {
         const result = await this._db.select({ tenant: TenantTable, membership: MembershipTable, user: UserTable }).from(TenantTable)
             .leftJoin(MembershipTable, eq(TenantTable.id, MembershipTable.tenantId))
-            .innerJoin(UserTable, eq(MembershipTable.userId, UserTable.id))
+            .leftJoin(UserTable, eq(MembershipTable.userId, UserTable.id))
             .where(eq(TenantTable.id, tenantId));
 
         const tenant = result[0]?.tenant;

@@ -24,6 +24,7 @@ There is **no test suite** — the root `test` script is a failing stub. Don't a
 ## Architecture
 
 - **Module pattern** (`src/modules/<name>/`): `domain/` (entities), `application/` (use cases, one class each), `repository/` + `query/` (writes vs reads), `db/` (Drizzle tables), `<name>.module.ts` (orchestrator that owns DB transactions), `<name>.routes.ts` (Express `Router` factory taking a `Container`), `index.ts` (public types).
+- **Domain Model pattern**: domain entities in `domain/` encapsulate business rules and invariants (e.g. `Tenant.removeMember` enforces "at least one admin must remain"). Application use cases delegate to domain methods and never duplicate those rules.
 - Routes are registered in `src/modules/router.ts` and mounted under `/api<path>` in `src/main.ts`.
 - **Cross-module communication** goes through `Mediator` (`@common/Mediator.ts`), not direct calls. Compensation/rollback events (`createTenantFail`, `addMemberFail`) are registered in `main.ts` to undo user creation when tenant/member ops fail.
 - Module orchestrators wrap use cases in `db.transaction`, instantiating repositories per-transaction with the `tx` handle.

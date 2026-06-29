@@ -63,6 +63,15 @@ export default class Tenant extends Subject {
             throw new Error("User is not a member of this tenant");
         }
 
+        const removedRole = this._props.memberships[membershipIndex]!.role.value;
+
+        if (removedRole === 'admin') {
+            const adminCount = this._props.memberships.filter(m => m.role.value === 'admin').length;
+            if (adminCount <= 1) {
+                throw new Error("Tenant must have at least one admin");
+            }
+        }
+
         this._props.memberships.splice(membershipIndex, 1);
 
         this.notify({ event: "memberRemoved", data: { userId } });

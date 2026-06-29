@@ -51,7 +51,13 @@ export default class TenantHttpGateway implements TenantGateway {
         return Result.Ok(undefined);
     }
 
-    public async removeUser(_tenantId: string, _user: User): Promise<Result<void, Error>> {
+    public async removeUser(tenantId: string, user: User): Promise<Result<void, Error>> {
+        const result = await this._httpClient.delete(`api/tenants/${tenantId}/users/${user.props.id}`, { headers: { 'x-tenant-id': tenantId } });
+
+        if (result.isErr()) {
+            return Result.Error(result.error);
+        }
+
         return Result.Ok(undefined);
     }
 }
