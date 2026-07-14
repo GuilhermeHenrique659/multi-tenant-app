@@ -5,5 +5,6 @@ export const Permissions = new Map([
     ["tenant:user:edit", ["admin"]],
     ["tenant:details:view", ["admin", "member"]],
     ["tenant:list", ["admin", "member"]],
-    ["tenant:read", ["admin", "member"]]
+    ["tenant:read", ["admin", "member"]],
+    ["project:create", ["admin"]]
 ]); 

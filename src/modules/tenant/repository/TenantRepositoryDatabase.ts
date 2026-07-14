@@ -8,22 +8,10 @@ import { DrizzleCriteriaApply } from "../../@common/DrizzleCriteriaApply.js";
 import { MembershipTable } from "../db/MembershipTable.js";
 import { and, eq } from "drizzle-orm";
 import Membership, { Role } from "../domain/Membership.js";
-import { Observer } from "../../@common/Observer.js";
-
-class ChangeTrackingObserver implements Observer {
-    constructor(private readonly changeEvens: { event: string, data: any }[] = []) { }
-
-    get changes() {
-        return this.changeEvens;
-    }
-
-    update(data: any): void {
-        this.changeEvens.push(data);
-    }
-}
+import ChangeTrackingObserver from "../../@common/ChangeTrackingObserver.js";
 
 export default class TenantRepositoryDatabase implements TenantRepository {
-    constructor(private readonly _db: NodePgDatabase, private readonly changeTraking: Map<string, ChangeTrackingObserver> = new Map()) { }
+    constructor(private readonly _db: NodePgDatabase, private readonly changeTracking: Map<string, ChangeTrackingObserver> = new Map()) { }
 
     private async _addTenent(tenant: Tenant): Promise<void> {
         await this._db.insert(TenantTable).values({
@@ -44,7 +32,7 @@ export default class TenantRepositoryDatabase implements TenantRepository {
     }
 
     async save(tenant: Tenant): Promise<void> {
-        const changeTrackingObserver = this.changeTraking.get(tenant.id);
+        const changeTrackingObserver = this.changeTracking.get(tenant.id);
 
         if (!changeTrackingObserver) return this._addTenent(tenant);
 
@@ -119,7 +107,7 @@ export default class TenantRepositoryDatabase implements TenantRepository {
         const changeTrackingObserver = new ChangeTrackingObserver();
         entity.subscribe(changeTrackingObserver);
 
-        this.changeTraking.set(entity.id, changeTrackingObserver);
+        this.changeTracking.set(entity.id, changeTrackingObserver);
 
         return entity
     }
