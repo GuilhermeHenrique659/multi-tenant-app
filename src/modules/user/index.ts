@@ -26,3 +26,9 @@ export type LoginOutput = {
     name: string;
     isSuperAdmin: boolean;
 }
+
+export type GetUserCriteria = {
+    term: Record<'userId' | 'name', string>;
+    includes: string[];
+    query?: { tenantId?: string };
+}

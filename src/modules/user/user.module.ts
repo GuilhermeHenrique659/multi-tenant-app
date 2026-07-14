@@ -1,5 +1,5 @@
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { CheckInInput, CheckInOutput, CreateUserInput, LoginInput, LoginOutput, RemoveUserInput } from "./index.js";
+import { CheckInInput, CheckInOutput, CreateUserInput, GetUserCriteria, LoginInput, LoginOutput, RemoveUserInput } from "./index.js";
 import CheckIn from "./application/CheckIn.js";
 import UserRepositoryDatabase from "./repository/UserRepositoryDatabase.js";
 import RemoveUser from "./application/RemoveUser.js";
@@ -43,8 +43,27 @@ export default class UserModuleImpl {
         });
     }
 
+    async getUserBy(input: GetUserCriteria) {
+        const user = input.term.userId
+            ? await new UserQuery(this._db).getById(input.term.userId)
+            : await new UserQuery(this._db).getByName(input.term.name);
+
+        if (!user) return null;
+
+        if (input.includes.includes('role') && input?.query?.tenantId) {
+            const userRole = await new UserQuery(this._db).getUserRoleByTenantIdAndUserId(input?.query?.tenantId, user.id);
+
+            return {
+                ...user,
+                role: userRole,
+            }
+        }
+        
+        return user;
+    }
+
     async hasPermissions(userId: string, tenantId: string, permissions: Array<string>): Promise<boolean> {
-        const userRole = await new UserQuery(db).getUserRoleByTenantIdAndUserId(tenantId, userId);
+        const userRole = await new UserQuery(this._db).getUserRoleByTenantIdAndUserId(tenantId, userId);
 
         if (!userRole) return false;
 

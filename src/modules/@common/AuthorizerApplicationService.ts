@@ -1,8 +1,8 @@
-export default interface AuthorizerApplicationService<I extends Input, O> {
+export default interface AuthorizerApplicationService<I extends AuthorizedInput, O> {
     execute(input: I): Promise<O>
 }
 
-type Input = {
+export type AuthorizedInput = {
     userId: string;
     tenantId: string;
 }
