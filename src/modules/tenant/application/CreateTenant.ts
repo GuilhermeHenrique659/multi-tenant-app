@@ -1,10 +1,11 @@
 import Mediator from "../../@common/Mediator.js";
 import * as UserModule from "../../user/index.js";
+import SuperAdminAuthorizerApplicationService, { SuperAdminInput } from "../../@common/SuperAdminAuthorizerApplicationService.js";
 import Tenant from "../domain/Tenant.js";
 import TenantCriteria from "../repository/TenantCriteria.js";
 import TenantRepository from "../repository/TenantRepository.js";
 
-export default class CreateTenant {
+export default class CreateTenant implements SuperAdminAuthorizerApplicationService<Input, Output> {
     constructor(private readonly _tenantRepository: TenantRepository, private readonly _mediator: Mediator = new Mediator()) { }
 
     async execute(input: Input): Promise<Output> {
@@ -20,7 +21,6 @@ export default class CreateTenant {
             throw new Error("Subdomain already in use");
         }
 
-
         const tenant = Tenant.create(input.name, input.subdomain, input.maxNumberOfMembers);
         tenant.addNewMember(admin.userId, 'admin');
 
@@ -32,7 +32,7 @@ export default class CreateTenant {
     }
 }
 
-type Input = {
+type Input = SuperAdminInput & {
     name: string;
     subdomain: string;
     maxNumberOfMembers: number;

@@ -21,16 +21,14 @@ export type TenantListItem = {
     memberCount: number;
 }
 
-type TenantMember = {
-    userId: string | undefined;
+export type AddMemberInput = {
+    tenantId: string;
+    userId: string;
+    targetUserId?: string | undefined;
     name: string;
     email: string;
     role: string;
 }
-
-export type AddMemberInput = {
-    tenantId: string;
-} & TenantMember;
 
 export type AddmemberOutput = {
     tenantId: string;
@@ -38,10 +36,15 @@ export type AddmemberOutput = {
 }
 
 export type CreateTenantInput = {
+    userId: string;
     name: string;
     subdomain: string;
     maxNumberOfMembers: number;
-    admin: TenantMember
+    admin: {
+        userId: string | undefined;
+        name: string;
+        email: string;
+    }
 }
 
 export type CreateTenantOutput = {

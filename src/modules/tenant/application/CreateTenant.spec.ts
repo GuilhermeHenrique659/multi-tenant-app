@@ -30,6 +30,7 @@ describe('CreateTenant', () => {
 
     it('creates a tenant with an admin member', async () => {
         const result = await createTenant.execute({
+            userId: 'super-admin-id',
             name: 'My Corp',
             subdomain: 'my-corp',
             maxNumberOfMembers: 10,
@@ -47,6 +48,7 @@ describe('CreateTenant', () => {
 
     it('throws when subdomain is already in use', async () => {
         await createTenant.execute({
+            userId: 'super-admin-id',
             name: 'First',
             subdomain: 'dup',
             maxNumberOfMembers: 5,
@@ -56,6 +58,7 @@ describe('CreateTenant', () => {
         await assert.rejects(
             () =>
                 createTenant.execute({
+                    userId: 'super-admin-id',
                     name: 'Second',
                     subdomain: 'dup',
                     maxNumberOfMembers: 5,
@@ -70,6 +73,7 @@ describe('CreateTenant', () => {
         await fakeUserRepo.save(existingUser);
 
         const result = await createTenant.execute({
+            userId: 'super-admin-id',
             name: 'Corp',
             subdomain: 'corp',
             maxNumberOfMembers: 5,

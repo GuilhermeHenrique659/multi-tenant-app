@@ -20,7 +20,11 @@ describe('RemoveMember', () => {
         tenant.addNewMember('member-id', 'member');
         await fakeTenantRepo.save(tenant);
 
-        await removeMember.execute({ tenantId: tenant.id, userId: 'member-id' });
+        await removeMember.execute({
+            userId: 'performer-id',
+            tenantId: tenant.id,
+            memberUserId: 'member-id',
+        });
 
         const saved = await fakeTenantRepo.get(new TenantCriteria().id(tenant.id));
         assert.equal(saved!.memberships.length, 1);
@@ -29,7 +33,7 @@ describe('RemoveMember', () => {
 
     it('throws when tenant does not exist', async () => {
         await assert.rejects(
-            () => removeMember.execute({ tenantId: 'nonexistent', userId: 'some-id' }),
+            () => removeMember.execute({ userId: 'performer-id', tenantId: 'nonexistent', memberUserId: 'some-id' }),
             /Tenant n.*o encontrado/,
         );
     });

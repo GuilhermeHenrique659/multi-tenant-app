@@ -5,14 +5,17 @@ import UserRepositoryDatabase from "./repository/UserRepositoryDatabase.js";
 import RemoveUser from "./application/RemoveUser.js";
 import CreateSuperAdmin from "./application/CreateSuperAdmin.js";
 import Login from "./application/Login.js";
-import TenantQuery from "../tenant/query/TenantQuery.js";
 import UserQuery from "./query/UserQuery.js";
 import { db } from "../../db/config.js";
 import { Permissions } from "../@common/Permissions.js";
 import { ProjectUserModule, ProjectUserModuleKey, UserTask } from "../project/UserModule.js";
+import { TenantUserModule } from "../tenant/UserModule.js";
 import AuthorizerApplicationService, { AuthorizedInput } from "../@common/AuthorizerApplicationService.js";
+import SuperAdminAuthorizerApplicationService, { SuperAdminInput } from "../@common/SuperAdminAuthorizerApplicationService.js";
+import AuthorizerDecorator from "./application/AuthorizerDecorator.js";
+import SuperAdminAuthorizerDecorator from "./application/SuperAdminAuthorizerDecorator.js";
 
-export default class UserModuleImpl implements ProjectUserModule {
+export default class UserModuleImpl implements ProjectUserModule, TenantUserModule {
     constructor(private readonly _db: NodePgDatabase) { }
 
     async getUser(userId: string, tenantId: string): Promise<UserTask | null> {
@@ -24,15 +27,11 @@ export default class UserModuleImpl implements ProjectUserModule {
     }
 
     authorizer<I extends AuthorizedInput, O>(service: AuthorizerApplicationService<I, O>, permissions: Array<string>): AuthorizerApplicationService<I, O> {
-        return {
-            execute: async (input: I) => {
-                const hasPermission = await this.hasPermissions(input.userId, input.tenantId, permissions);
-                if (!hasPermission) {
-                    throw new Error('Forbidden');
-                }
-                return service.execute(input);
-            }
-        };
+        return new AuthorizerDecorator(service, permissions, new UserQuery(this._db));
+    }
+
+    superAdminAuthorizer<I extends SuperAdminInput, O>(service: SuperAdminAuthorizerApplicationService<I, O>): SuperAdminAuthorizerApplicationService<I, O> {
+        return new SuperAdminAuthorizerDecorator(service, new UserQuery(this._db));
     }
 
     async login(input: LoginInput): Promise<LoginOutput> {
@@ -82,6 +81,11 @@ export default class UserModuleImpl implements ProjectUserModule {
         }
 
         return user;
+    }
+
+    async isSuperAdmin(userId: string): Promise<boolean> {
+        const user = await new UserQuery(this._db).getById(userId);
+        return user?.isSuperAdmin ?? false;
     }
 
     async hasPermissions(userId: string, tenantId: string, permissions: Array<string>): Promise<boolean> {

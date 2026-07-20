@@ -1,10 +1,10 @@
 import Mediator from "../../@common/Mediator.js";
 import * as UserModule from "../../user/index.js";
-import Membership from "../domain/Membership.js";
+import AuthorizerApplicationService, { AuthorizedInput } from "../../@common/AuthorizerApplicationService.js";
 import TenantCriteria from "../repository/TenantCriteria.js";
 import TenantRepository from "../repository/TenantRepository.js";
 
-export default class AddUserToTenant {
+export default class AddUserToTenant implements AuthorizerApplicationService<Input, Output> {
     constructor(private readonly tenantRepository: TenantRepository, private readonly _mediator: Mediator = new Mediator()) { }
 
     async execute(input: Input): Promise<Output> {
@@ -32,18 +32,17 @@ export default class AddUserToTenant {
     }
 }
 
-type Output = {
-    userId: string;
-    tenantId: string;
-    role: string;
-}
-
-type Input = {
-    tenantId: string;
+type Input = AuthorizedInput & {
     user: {
         id: string | undefined;
         name: string;
         email: string;
     }
+    role: string;
+}
+
+type Output = {
+    userId: string;
+    tenantId: string;
     role: string;
 }

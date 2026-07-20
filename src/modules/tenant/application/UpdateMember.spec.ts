@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import UpdateMember from './UpdateMember..js';
+import UpdateMember from './UpdateMember.js';
 import FakeTenantRepository from '../repository/FakeTenantRepository.js';
 import Tenant from '../domain/Tenant.js';
 import TenantCriteria from '../repository/TenantCriteria.js';
@@ -21,8 +21,9 @@ describe('UpdateMember', () => {
         await fakeTenantRepo.save(tenant);
 
         const result = await updateMember.execute({
+            userId: 'performer-id',
             tenantId: tenant.id,
-            userId: 'member-id',
+            memberUserId: 'member-id',
             role: 'admin',
         });
 
@@ -39,8 +40,9 @@ describe('UpdateMember', () => {
         await assert.rejects(
             () =>
                 updateMember.execute({
+                    userId: 'performer-id',
                     tenantId: 'nonexistent',
-                    userId: 'some-id',
+                    memberUserId: 'some-id',
                     role: 'admin',
                 }),
             /Tenant n.*o encontrado/,

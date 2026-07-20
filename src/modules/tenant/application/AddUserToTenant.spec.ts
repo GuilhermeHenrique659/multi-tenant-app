@@ -34,6 +34,7 @@ describe('AddUserToTenant', () => {
         await fakeTenantRepo.save(tenant);
 
         const result = await addUserToTenant.execute({
+            userId: 'performer-id',
             tenantId: tenant.id,
             user: { id: undefined, name: 'New Member', email: 'member@example.com' },
             role: 'member',
@@ -52,6 +53,7 @@ describe('AddUserToTenant', () => {
         await assert.rejects(
             () =>
                 addUserToTenant.execute({
+                    userId: 'performer-id',
                     tenantId: 'nonexistent',
                     user: { id: undefined, name: 'User', email: 'user@example.com' },
                     role: 'member',
