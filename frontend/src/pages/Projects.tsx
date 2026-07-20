@@ -17,7 +17,6 @@ import { projectsStore } from "../model/Project";
 export default function Projects() {
   const { tenantId } = useParams();
   const projectCollection = useProjectStore((s) => s);
-  const projectActions = useProjectActions();
   const [selectProjectId, setSelectProjectId] = useState<string | null>(null);
 
   const selectedProject = useProject(selectProjectId);

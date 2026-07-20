@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Project } from "../model/Project";
 import { useProjectActions } from "../hook/useProjects";
 import FetchHttpClient from "../gateway/FetchHttpClient";
@@ -14,6 +15,7 @@ interface ProjectsNavBarProps {
 }
 
 export default function ProjectsNavBar({ tenantId, projects, selectedProjectId, onSelectProject }: ProjectsNavBarProps) {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
 
   const projectActions = useProjectActions();
@@ -38,6 +40,7 @@ export default function ProjectsNavBar({ tenantId, projects, selectedProjectId, 
 
   return (
     <aside className="projects-sidebar">
+      <button className="btn btn--small" onClick={() => navigate('/')} style={{ alignSelf: 'flex-start' }}>Home</button>
       <div className="projects-sidebar-header">
         <h2>Projects</h2>
       </div>

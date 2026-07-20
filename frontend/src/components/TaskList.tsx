@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useTask, useTaskActions, useTaskStore } from "../hook/useProjects";
+import { useTaskStore } from "../hook/useProjects";
 import type { Project } from "../model/Project";
 import { ListTasks } from "../application/project/ListTasks";
 import FetchHttpClient from "../gateway/FetchHttpClient";
@@ -7,6 +7,7 @@ import ProjectHttpGateway from "../gateway/project/ProjectHttpGateway";
 import { tasksStore } from "../model/Task";
 import { ModelCollection } from "../model/common/Collection";
 import { ModelToMapFn } from "../util/ArrayUtil";
+import TaskModal from "./TaskModal";
 
 interface TaskListProps {
   tenantId: string;
@@ -15,10 +16,8 @@ interface TaskListProps {
 
 export default function TaskList({ tenantId, project }: TaskListProps) {
   const taskCollection = useTaskStore((s) => s);
-  const TaskActions = useTaskActions();
-  const [selectTaskId, setSelectTaskId] = useState<string | null>(null);
-
-  const selectedTask = useTask(selectTaskId);
+  const [editTaskId, setEditTaskId] = useState<string | null>(null);
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
 
   const projectGateway = new ProjectHttpGateway(new FetchHttpClient());
   const listTasks = ListTasks({ projectGateway });
@@ -42,29 +41,46 @@ export default function TaskList({ tenantId, project }: TaskListProps) {
         </span>
       </div>
       <div className="task-section">
-        <h3>Task</h3>
+        <div className="task-section-header">
+          <h3>Tasks</h3>
+          <button className="btn btn--primary btn--small" onClick={() => setIsCreatingTask(true)}>Add Task</button>
+        </div>
         <div className="task-list">
           {taskCollection.tasks.values().length === 0 ? (
             <p className="empty-state">No task yet</p>
           ) : (
             taskCollection.tasks.values().map((task) => (
-              <div key={task.props.id} className="task-card">
+              <div key={task.props.id} className="task-card" onClick={() => setEditTaskId(task.props.id)}>
                 <div className="task-card-header">
                   <span className="task-name">{task.props.name}</span>
-                  <span
-                    className={`task-status task-status--${task.props.status}`}
-                  >
+                  <span className={`task-status task-status--${task.props.status}`}>
                     {task.props.status}
                   </span>
                 </div>
-                {task.assignee ? (
-                  <p className="task-assignee">{task.assignee.name}</p>
-                ) : null}
               </div>
             ))
           )}
         </div>
       </div>
+
+      {isCreatingTask ? (
+        <TaskModal
+          mode="create"
+          tenantId={tenantId}
+          projectId={project.props.id}
+          onClose={() => setIsCreatingTask(false)}
+        />
+      ) : null}
+
+      {editTaskId ? (
+        <TaskModal
+          mode="edit"
+          tenantId={tenantId}
+          projectId={project.props.id}
+          taskId={editTaskId}
+          onClose={() => setEditTaskId(null)}
+        />
+      ) : null}
     </div>
   );
 }
