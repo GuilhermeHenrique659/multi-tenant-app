@@ -70,6 +70,29 @@ export default class FetchHttpClient implements HttpClient {
         }
     }
 
+    async patch<T>(url: string, body?: any, options?: RequestInit): Promise<Result<T, Error>> {
+        const user = this._getUser();
+        const headers: HeadersInit | undefined = user ? { ...options?.headers, 'x-user-id': user.id as string } : options?.headers;
+
+        try {
+            const response = await fetch(url, {
+                method: "PATCH",
+                body: body ? JSON.stringify(body) : undefined,
+                ...options,
+                headers: { ...headers, "Content-Type": "application/json" }
+            });
+
+            if (!response.ok) {
+                return Result.Error(new Error(`HTTP error! status: ${response.status}`));
+            }
+
+            const data = await response.json() as T;
+            return Result.Ok(data);
+        } catch (err) {
+            return Result.Error(err instanceof Error ? err : new Error('Unknown error'));
+        }
+    }
+
     async delete<T>(url: string, options?: RequestInit): Promise<Result<T, Error>> {
         const user = this._getUser();
         const headers: HeadersInit | undefined = user ? { ...options?.headers, 'x-user-id': user.id as string } : options?.headers;

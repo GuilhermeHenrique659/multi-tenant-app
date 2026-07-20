@@ -12,7 +12,7 @@ export default class UserHttpGateway implements UserGateway {
     }
 
     public async getByName(name: string): Promise<Result<User, Error>> {
-        const result = await this._httpClient.get<Record<string, unknown>>(`api/users/search?name=${encodeURIComponent(name)}`);
+        const result = await this._httpClient.get<Record<string, unknown>>(`/api/users/search?name=${encodeURIComponent(name)}`);
 
         if (result.isErr()) {
             return Result.Error(result.error);

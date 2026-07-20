@@ -12,7 +12,7 @@ export default class TenantHttpGateway implements TenantGateway {
     }
 
     public async getList(): Promise<Result<Array<Tenant>, Error>> {
-        const result = await this._httpClient.get<Array<unknown>>('api/tenants');
+        const result = await this._httpClient.get<Array<unknown>>('/api/tenants');
 
         if (result.isErr()) {
             return Result.Error(result.error);
@@ -23,7 +23,7 @@ export default class TenantHttpGateway implements TenantGateway {
     }
 
     public async getById(id: string): Promise<Result<Tenant, Error>> {
-        const result = await this._httpClient.get<any>(`api/tenants/${id}`, { headers: { 'x-tenant-id': id } });
+        const result = await this._httpClient.get<any>(`/api/tenants/${id}`, { headers: { 'x-tenant-id': id } });
 
         if (result.isErr()) {
             return Result.Error(result.error);
@@ -37,7 +37,7 @@ export default class TenantHttpGateway implements TenantGateway {
     }
 
     public async addUser(tenantId: string, user: User, role: string): Promise<Result<void, Error>> {
-        const result = await this._httpClient.post<any | null>(`api/tenants/${tenantId}/users`, {
+        const result = await this._httpClient.post<any | null>(`/api/tenants/${tenantId}/users`, {
             userId: user.props.id,
             name: user.props.name,
             email: user.props.email,
@@ -52,7 +52,7 @@ export default class TenantHttpGateway implements TenantGateway {
     }
 
     public async removeUser(tenantId: string, user: User): Promise<Result<void, Error>> {
-        const result = await this._httpClient.delete(`api/tenants/${tenantId}/users/${user.props.id}`, { headers: { 'x-tenant-id': tenantId } });
+        const result = await this._httpClient.delete(`/api/tenants/${tenantId}/users/${user.props.id}`, { headers: { 'x-tenant-id': tenantId } });
 
         if (result.isErr()) {
             return Result.Error(result.error);

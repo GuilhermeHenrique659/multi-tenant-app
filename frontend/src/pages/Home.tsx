@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import FetchHttpClient from "../gateway/FetchHttpClient";
 import TenantHttpGateway from "../gateway/tenant/TenantHttpGateway";
 import UserHttpGateway from "../gateway/user/UserHttpGateway";
@@ -157,6 +158,7 @@ function TenantModal({ tenant, onClose }: Props) {
 }
 
 export default function Home() {
+  const navigate = useNavigate();
   const tenantsCollection = useTenantStore((s) => s);
   const tenentActions = useTenantActions();
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
@@ -198,12 +200,20 @@ export default function Home() {
                   {tenant.props.memberCount ?? tenant.members.length} member{(tenant.props.memberCount ?? tenant.members.length) !== 1 ? "s" : ""}
                 </p>
               </div>
-              <button
-                className="btn btn--primary"
-                onClick={showTenantDetails(tenant.props.id)}
-              >
-                View details
-              </button>
+              <div className="tenant-card-actions">
+                <button
+                  className="btn btn--primary"
+                  onClick={showTenantDetails(tenant.props.id)}
+                >
+                  View details
+                </button>
+                <button
+                  className="btn"
+                  onClick={() => navigate(`/tenants/${tenant.props.id}/projects`)}
+                >
+                  Projects
+                </button>
+              </div>
             </div>
           );
         })}
