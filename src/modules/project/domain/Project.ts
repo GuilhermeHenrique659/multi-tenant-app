@@ -1,5 +1,6 @@
 import Id from "../../@common/Id.js";
 import { Subject } from "../../@common/Observer.js";
+import ChangeTrackingObserver from "../../@common/ChangeTrackingObserver.js";
 import ProjectStatus from "./ProjectStatus.js";
 
 type ProjectProps = {
@@ -11,8 +12,11 @@ type ProjectProps = {
 }
 
 export default class Project extends Subject {
+    private readonly _changeTracker = new ChangeTrackingObserver();
+
     constructor(private readonly _props: ProjectProps) {
         super();
+        this.subscribe(this._changeTracker);
     }
 
     readonly id = () => this._props.id.value;
@@ -23,6 +27,8 @@ export default class Project extends Subject {
 
     static create(name: string, tenantId: string): Project {
         const project = new Project({ id: Id.create(), tenantId: new Id(tenantId), status: ProjectStatus.create('active'), createdAt: new Date(), name });
+
+        project.notify({ event: "projectCreated", data: { id: project.id() } });
 
         return project
     }

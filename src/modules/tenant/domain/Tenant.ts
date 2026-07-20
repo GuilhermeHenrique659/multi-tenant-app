@@ -1,5 +1,6 @@
 import Id from "../../@common/Id.js";
 import { Subject } from "../../@common/Observer.js";
+import ChangeTrackingObserver from "../../@common/ChangeTrackingObserver.js";
 import Membership from "./Membership.js";
 
 type TenantProps = {
@@ -12,8 +13,11 @@ type TenantProps = {
 }
 
 export default class Tenant extends Subject {
+    private readonly _changeTracker = new ChangeTrackingObserver();
+
     constructor(private readonly _props: TenantProps) {
         super();
+        this.subscribe(this._changeTracker);
     }
 
     get id(): string {
@@ -113,7 +117,7 @@ export default class Tenant extends Subject {
     }
 
     static create(name: string, subdomain: string, maxNumberOfMembers = 5): Tenant {
-        return new Tenant({
+        const tenant = new Tenant({
             id: Id.create(),
             name,
             subdomain,
@@ -121,6 +125,10 @@ export default class Tenant extends Subject {
             createdAt: new Date(),
             memberships: [],
         });
+
+        tenant.notify({ event: "tenantCreated", data: { id: tenant.id } });
+
+        return tenant;
     }
 
 }

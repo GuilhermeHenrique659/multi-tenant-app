@@ -1,5 +1,6 @@
 import Id from "../../@common/Id.js"
 import { Subject } from "../../@common/Observer.js";
+import ChangeTrackingObserver from "../../@common/ChangeTrackingObserver.js";
 import DueDate from "./DueDate.js";
 import TaskStatus from "./TaskStatus.js";
 
@@ -14,8 +15,11 @@ type TaskProps = {
 };
 
 export default class Task extends Subject {
+    private readonly _changeTracker = new ChangeTrackingObserver();
+
     constructor(private readonly _props: TaskProps) {
         super();
+        this.subscribe(this._changeTracker);
     }
 
     readonly id = () => this._props.id.value;
@@ -61,6 +65,8 @@ export default class Task extends Subject {
             assignId: null,
             dueDate: null
         });
+
+        task.notify({ event: "taskCreated", data: { id: task.id() } });
 
         return task;
     }

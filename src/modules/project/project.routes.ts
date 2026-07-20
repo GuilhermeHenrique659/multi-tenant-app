@@ -2,10 +2,12 @@ import { Router } from "express";
 import { db } from "../../db/config.js";
 import { Container } from "../@common/Container.js";
 import ProjectModule from "./project.module.js";
+import { ProjectUserModule, ProjectUserModuleKey } from "./UserModule.js";
 
 const ProjectRoutes = (container: Container) => {
     const projectRoutes = Router();
-    const projectModule = new ProjectModule(db);
+    const userModule = container.get<ProjectUserModule>(ProjectUserModuleKey);
+    const projectModule = new ProjectModule(db, userModule);
 
     projectRoutes.post('/', async (req, res) => {        
         const tenantId = req.headers['x-tenant-id'] as string;

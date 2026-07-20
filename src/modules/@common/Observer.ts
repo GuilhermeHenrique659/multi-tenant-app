@@ -16,4 +16,8 @@ export abstract class Subject {
     notify(data: any) {
         this.observers.forEach(observer => observer.update(data));
     }
+
+    findObserver<T extends Observer>(predicate: (observer: Observer) => boolean): T | undefined {
+        return this.observers.find(predicate) as T | undefined;
+    }
 }

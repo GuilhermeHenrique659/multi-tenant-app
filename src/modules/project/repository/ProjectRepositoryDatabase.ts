@@ -1,4 +1,3 @@
-import ChangeTrackingObserver from "../../@common/ChangeTrackingObserver.js";
 import Id from "../../@common/Id.js";
 import Project from "../domain/Project.js";
 import ProjectRepository from "./ProjectRepository.js";
@@ -8,18 +7,15 @@ import { DrizzleCriteriaApply } from "../../@common/DrizzleCriteriaApply.js";
 import { eq } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { ProjectTable } from "../db/ProjectTable.js";
+import ChangeTrackingObserver from "../../@common/ChangeTrackingObserver.js";
 
 export default class ProjectRepositoryDatabase implements ProjectRepository {
-    constructor(private readonly _db: NodePgDatabase, private readonly _changeTracking = new Map<string, ChangeTrackingObserver>()) { }
+    constructor(private readonly _db: NodePgDatabase) { }
 
     async save(project: Project): Promise<void> {
-        if (this._changeTracking.has(project.id())) {
-            await this._db.update(ProjectTable).set({
-                name: project.name(),
-                status: project.status(),
-            })
-                .where(eq(ProjectTable.id, project.id()));
-        } else {
+        const tracker = project.findObserver<ChangeTrackingObserver>(o => o instanceof ChangeTrackingObserver);
+
+        if (!tracker || tracker.hasEvent("projectCreated")) {
             await this._db.insert(ProjectTable).values({
                 id: project.id(),
                 name: project.name(),
@@ -27,6 +23,12 @@ export default class ProjectRepositoryDatabase implements ProjectRepository {
                 createdAt: project.createAt(),
                 tenantId: project.tenantId(),
             });
+        } else {
+            await this._db.update(ProjectTable).set({
+                name: project.name(),
+                status: project.status(),
+            })
+                .where(eq(ProjectTable.id, project.id()));
         }
     }
 
@@ -48,10 +50,6 @@ export default class ProjectRepositoryDatabase implements ProjectRepository {
             tenantId: new Id(result.tenantId),
             createdAt: result.createdAt,
         });
-
-        const changeTracking = new ChangeTrackingObserver();
-        project.subscribe(changeTracking);
-        this._changeTracking.set(project.id(), changeTracking);
 
         return project;
     }

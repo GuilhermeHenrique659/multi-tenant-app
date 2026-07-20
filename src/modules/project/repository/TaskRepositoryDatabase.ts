@@ -1,6 +1,5 @@
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import TaskRepository from "./TaskRepository.js";
-import ChangeTrackingObserver from "../../@common/ChangeTrackingObserver.js";
 import Task from "../domain/Task.js";
 import { TaskTable } from "../db/TaskTable.js";
 import { eq } from "drizzle-orm";
@@ -9,12 +8,23 @@ import { DrizzleCriteriaApply } from "../../@common/DrizzleCriteriaApply.js";
 import Id from "../../@common/Id.js";
 import TaskStatus from "../domain/TaskStatus.js";
 import DueDate from "../domain/DueDate.js";
+import ChangeTrackingObserver from "../../@common/ChangeTrackingObserver.js";
 
 export default class TaskRepositoryDatabase implements TaskRepository {
-    constructor(private readonly _db: NodePgDatabase, private readonly _changeTracking = new Map<string, ChangeTrackingObserver>()) { }
+    constructor(private readonly _db: NodePgDatabase) { }
 
     public async save(task: Task): Promise<void> {
-        if (this._changeTracking.has(task.id())) {
+        const tracker = task.findObserver<ChangeTrackingObserver>(o => o instanceof ChangeTrackingObserver);
+
+        if (!tracker || tracker.hasEvent("taskCreated")) {
+            await this._db.insert(TaskTable).values({
+                id: task.id(),
+                name: task.name(),
+                status: task.status(),
+                createdAt: task.createdAt(),
+                projectId: task.projectId(),
+            });
+        } else {
             await this._db.update(TaskTable).set({
                 name: task.name(),
                 startAt: task.startAt(),
@@ -22,14 +32,6 @@ export default class TaskRepositoryDatabase implements TaskRepository {
                 assigneeId: task.assignId(),
                 status: task.status(),
             }).where(eq(TaskTable.id, task.id()));
-        } else {
-            await this._db.insert(TaskTable).values({
-                id: task.id(),
-                name: task.name(),
-                status: task.status(),
-                createdAt: task.createdAt(),
-                projectId: task.projectId(),
-            })
         }
     }
 
@@ -44,8 +46,6 @@ export default class TaskRepositoryDatabase implements TaskRepository {
 
         if (!result) return null;
 
-        const changeTracking = new ChangeTrackingObserver();
-
         const task = new Task({
             id: new Id(result.id),
             name: result.name,
@@ -55,8 +55,6 @@ export default class TaskRepositoryDatabase implements TaskRepository {
             projectId: new Id(result.projectId),
             assignId: result.assigneeId ? new Id(result.assigneeId) : null,
         });
-
-        task.subscribe(changeTracking);
 
         return task;
     }

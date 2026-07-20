@@ -2,10 +2,10 @@ import AuthorizerApplicationService, { AuthorizedInput } from "../../@common/Aut
 import { TaskService } from "../domain/TaskService.js";
 import TaskCriteria from "../repository/TaskCriteria.js";
 import TaskRepository from "../repository/TaskRepository.js";
-import { UserModule } from "../UserModule.js";
+import { ProjectUserModule } from "../UserModule.js";
 
 export class AssignTask implements AuthorizerApplicationService<Input, Output> {
-    constructor(private readonly _taskRepository: TaskRepository, private readonly _userModule: UserModule) { }
+    constructor(private readonly _taskRepository: TaskRepository, private readonly _userModule: ProjectUserModule) { }
 
     public async execute(input: Input): Promise<Output> {
         const task = await this._taskRepository.get(new TaskCriteria().getById(input.taskId));

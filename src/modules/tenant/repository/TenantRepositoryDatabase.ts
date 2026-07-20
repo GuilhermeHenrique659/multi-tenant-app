@@ -11,7 +11,7 @@ import Membership, { Role } from "../domain/Membership.js";
 import ChangeTrackingObserver from "../../@common/ChangeTrackingObserver.js";
 
 export default class TenantRepositoryDatabase implements TenantRepository {
-    constructor(private readonly _db: NodePgDatabase, private readonly changeTracking: Map<string, ChangeTrackingObserver> = new Map()) { }
+    constructor(private readonly _db: NodePgDatabase) { }
 
     private async _addTenent(tenant: Tenant): Promise<void> {
         await this._db.insert(TenantTable).values({
@@ -32,11 +32,14 @@ export default class TenantRepositoryDatabase implements TenantRepository {
     }
 
     async save(tenant: Tenant): Promise<void> {
-        const changeTrackingObserver = this.changeTracking.get(tenant.id);
+        const tracker = tenant.findObserver<ChangeTrackingObserver>(o => o instanceof ChangeTrackingObserver);
 
-        if (!changeTrackingObserver) return this._addTenent(tenant);
+        if (!tracker || tracker.hasEvent("tenantCreated")) {
+            await this._addTenent(tenant);
+            return;
+        }
 
-        for (const change of changeTrackingObserver!.changes) {
+        for (const change of tracker.changes) {
             switch (change.event) {
                 case "memberAdded": {
                     await this._db.insert(MembershipTable).values({
@@ -103,11 +106,6 @@ export default class TenantRepositoryDatabase implements TenantRepository {
             })),
             createdAt: tenant.createdAt,
         });
-
-        const changeTrackingObserver = new ChangeTrackingObserver();
-        entity.subscribe(changeTrackingObserver);
-
-        this.changeTracking.set(entity.id, changeTrackingObserver);
 
         return entity
     }

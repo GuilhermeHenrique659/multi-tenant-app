@@ -4,10 +4,10 @@ import CreateProject from "./application/CreateProject.js";
 import { CreateProjectRequest } from "./index.js";
 import TaskRepositoryDatabase from "./repository/TaskRepositoryDatabase.js";
 import { AssignTask } from "./application/AssignTask.js";
-import { UserModule } from "./UserModule.js";
+import { ProjectUserModule } from "./UserModule.js";
 
 export default class ProjectModule {
-    constructor(private readonly _db: NodePgDatabase, private readonly _userModule: UserModule) { }
+    constructor(private readonly _db: NodePgDatabase, private readonly _userModule: ProjectUserModule) { }
 
     public async createProject(input: CreateProjectRequest) {
         return this._db.transaction(async (tx) => {
