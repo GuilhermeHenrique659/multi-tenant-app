@@ -31,11 +31,18 @@ export default class Task extends Subject {
     readonly assignId = () => this._props.assignId?.value;
     readonly projectId = () => this._props.projectId.value;
 
+    public rename(name?: string) {
+        if (!name) return;
+        this._props.name = name;
+    }
+
     public assigneeTo(userId: string) {
         this._props.assignId = new Id(userId);
     }
 
-    public changeStatus(status: string) {
+    public changeStatus(status?: string) {
+        if (!status) return;
+
         const newStatus = TaskStatus.create(status);
 
         if (newStatus.value === this._props.status.value) return;
@@ -45,14 +52,15 @@ export default class Task extends Subject {
         this._props.status = newStatus;
     }
 
-    public setDueDate(startAt?: Date, endAt?: Date) {
-        const newStartAt = startAt || this._props.dueDate?.startAt;
+    public setDueDate(startAt?: string, endAt?: string) {
+        if (!startAt && !endAt) return;
 
-        if (!newStartAt) throw new Error('start must be required');
+        const resolvedStartAt = startAt ? new Date(startAt) : this._props.dueDate?.startAt;
+        const resolvedEndAt = endAt ? new Date(endAt) : this._props.dueDate?.endAt;
 
-        const dueDate = DueDate.create(newStartAt, endAt || this._props.dueDate?.endAt);
+        if (!resolvedStartAt) throw new Error('start must be required');
 
-        this._props.dueDate = dueDate;
+        this._props.dueDate = DueDate.create(resolvedStartAt, resolvedEndAt);
     }
 
     static create(name: string, projectId: string) {

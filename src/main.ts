@@ -1,6 +1,6 @@
 import express, { NextFunction, Request, Response } from 'express';
 import Mediator from './modules/@common/Mediator.js';
-import UserModuleImpl from './modules/user/user.module.js';
+import UserModuleImpl, { ProjectUserModuleKey } from './modules/user/user.module.js';
 
 import { db } from './db/config.js';
 import { tenantSubdomainMiddleware } from './modules/@common/Middleware.js';
@@ -35,6 +35,7 @@ async function main() {
     container.register('mediator', mediator);
 
     const userModule = new UserModuleImpl(db);
+    container.register(ProjectUserModuleKey, userModule);
 
     mediator.register('checkInUser', async (input: any) => {
         return userModule.checkInUser(input);

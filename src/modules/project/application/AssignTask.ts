@@ -12,7 +12,7 @@ export class AssignTask implements AuthorizerApplicationService<Input, Output> {
 
         if (!task) throw new Error('Task not found');
 
-        const user = await this._userModule.getUser(input.userId, input.tenantId);
+        const user = await this._userModule.getUser(input.assigneeId, input.tenantId);
 
         if (!user) throw new Error('User to assign not found');
 
@@ -26,6 +26,7 @@ export class AssignTask implements AuthorizerApplicationService<Input, Output> {
 
 type Input = AuthorizedInput & {
     taskId: string;
+    assigneeId: string;
 }
 
 type Output = {

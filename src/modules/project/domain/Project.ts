@@ -25,6 +25,10 @@ export default class Project extends Subject {
     readonly createAt = () => this._props.createdAt;
     readonly tenantId = () => this._props.tenantId.value
 
+    ensureIsActive() {
+        if (this._props.status.value !== 'active') throw new Error('Project is not active');
+    }
+
     static create(name: string, tenantId: string): Project {
         const project = new Project({ id: Id.create(), tenantId: new Id(tenantId), status: ProjectStatus.create('active'), createdAt: new Date(), name });
 

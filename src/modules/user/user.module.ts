@@ -9,9 +9,31 @@ import TenantQuery from "../tenant/query/TenantQuery.js";
 import UserQuery from "./query/UserQuery.js";
 import { db } from "../../db/config.js";
 import { Permissions } from "../@common/Permissions.js";
+import { ProjectUserModule, ProjectUserModuleKey, UserTask } from "../project/UserModule.js";
+import AuthorizerApplicationService, { AuthorizedInput } from "../@common/AuthorizerApplicationService.js";
 
-export default class UserModuleImpl {
+export default class UserModuleImpl implements ProjectUserModule {
     constructor(private readonly _db: NodePgDatabase) { }
+
+    async getUser(userId: string, tenantId: string): Promise<UserTask | null> {
+        const userRole = await new UserQuery(this._db).getUserRoleByTenantIdAndUserId(tenantId, userId);
+
+        if (!userRole) return null;
+
+        return { id: userId, role: userRole };
+    }
+
+    authorizer<I extends AuthorizedInput, O>(service: AuthorizerApplicationService<I, O>, permissions: Array<string>): AuthorizerApplicationService<I, O> {
+        return {
+            execute: async (input: I) => {
+                const hasPermission = await this.hasPermissions(input.userId, input.tenantId, permissions);
+                if (!hasPermission) {
+                    throw new Error('Forbidden');
+                }
+                return service.execute(input);
+            }
+        };
+    }
 
     async login(input: LoginInput): Promise<LoginOutput> {
         return await this._db.transaction(async (tx) => {
@@ -58,7 +80,7 @@ export default class UserModuleImpl {
                 role: userRole,
             }
         }
-        
+
         return user;
     }
 
@@ -73,3 +95,5 @@ export default class UserModuleImpl {
         });
     }
 }
+
+export { ProjectUserModuleKey };
