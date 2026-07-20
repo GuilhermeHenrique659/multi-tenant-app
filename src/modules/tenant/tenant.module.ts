@@ -1,5 +1,5 @@
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { AddMemberInput, AddmemberOutput, CreateTenantInput, CreateTenantOutput, TenantData } from "./index.js";
+import { AddMemberInput, AddmemberOutput, CreateTenantInput, CreateTenantOutput, TenantData, TenantListItem } from "./index.js";
 import TenantRepository from "./repository/TenantRepository.js";
 import TenantRepositoryDatabase from "./repository/TenantRepositoryDatabase.js";
 import Mediator from "../@common/Mediator.js";
@@ -68,7 +68,7 @@ export default class TenantModuleImpl {
         });
     }
 
-    async list(): Promise<Omit<TenantData, 'members'>[]> {
+    async list(): Promise<TenantListItem[]> {
         return this._tenantQuery.getAllTenants();
     }
 

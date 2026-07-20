@@ -11,6 +11,7 @@ const TenantSchema = z.object({
     name: z.string(),
     maxNumberOfMembers: z.number(),
     createdAt: z.string(),
+    memberCount: z.number().optional(),
 });
 
 const TenantMemberSchema = z.object({
@@ -22,7 +23,7 @@ const TenantMemberSchema = z.object({
     }),
 })
 
-type TenantBaseProp = Readonly<z.infer<typeof TenantSchema>>;
+export type TenantBaseProp = Readonly<z.infer<typeof TenantSchema>>;
 type TenantMember = z.infer<typeof TenantMemberSchema>;
 
 export type Tenant = Readonly<{

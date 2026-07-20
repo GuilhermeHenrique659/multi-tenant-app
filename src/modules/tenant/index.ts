@@ -2,6 +2,7 @@ export type TenantData = {
     id: string;
     name: string;
     maxNumberOfMembers: number;
+    createdAt: Date;
     members: {
         user: {
             id: string;
@@ -9,6 +10,15 @@ export type TenantData = {
         };
         role: string;
     }[];
+}
+
+export type TenantListItem = {
+    id: string;
+    name: string;
+    subdomain: string;
+    maxNumberOfMembers: number;
+    createdAt: Date;
+    memberCount: number;
 }
 
 type TenantMember = {

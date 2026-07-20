@@ -36,7 +36,7 @@ export default function Login() {
       email: user.props.email,
     });
 
-    localStorage.setItem("user", JSON.stringify(userUpdated));
+    localStorage.setItem("user", JSON.stringify(userUpdated.props));
 
     navigate("/");
   };

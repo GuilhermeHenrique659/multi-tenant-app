@@ -1,7 +1,7 @@
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { TenantTable } from "../db/TenantTable.js";
 import { MembershipTable } from "../db/MembershipTable.js";
-import { and, eq } from "drizzle-orm";
+import { and, eq, count, sql } from "drizzle-orm";
 import { UserTable } from "../../user/db/UserTable.js";
 
 type TenantData = {
@@ -16,6 +16,15 @@ type TenantData = {
         };
         role: string;
     }[];
+}
+
+export type TenantListItem = {
+    id: string;
+    name: string;
+    subdomain: string;
+    maxNumberOfMembers: number;
+    createdAt: Date;
+    memberCount: number;
 }
 
 class TenantMapper {
@@ -87,9 +96,20 @@ export default class TenantQuery {
     }
 
 
-    public async getAllTenants(): Promise<Omit<TenantData, 'members'>[]> {
-        const result = await this._db.select().from(TenantTable);
+    public async getAllTenants(): Promise<TenantListItem[]> {
+        const result = await this._db
+            .select({
+                id: TenantTable.id,
+                name: TenantTable.name,
+                subdomain: TenantTable.subdomain,
+                maxNumberOfMembers: TenantTable.maxNumberOfMembers,
+                createdAt: TenantTable.createdAt,
+                memberCount: count(MembershipTable.userId),
+            })
+            .from(TenantTable)
+            .leftJoin(MembershipTable, eq(TenantTable.id, MembershipTable.tenantId))
+            .groupBy(TenantTable.id);
 
-        return result.map(tenant => TenantMapper.toTenantDataWithoutMemberships(tenant));
+        return result;
     }
 }

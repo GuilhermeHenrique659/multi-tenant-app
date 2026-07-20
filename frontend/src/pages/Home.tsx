@@ -68,63 +68,91 @@ function TenantModal({ tenant, onClose }: Props) {
   };
 
   return (
-    <dialog open>
-      <h1>{tenant.props.name}</h1>
-
-      <h2>Add member</h2>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleAddUser();
-        }}
-      >
-        <div>
-          <label>
-            Name:
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </label>
-        </div>
-        <div>
-          <label>
-            Email:
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </label>
-        </div>
-        <div>
-          <label>
-            Role:
-            <select value={role} onChange={(e) => setRole(e.target.value)}>
-              <option value="member">Member</option>
-              <option value="admin">Admin</option>
-            </select>
-          </label>
-        </div>
-        <button type="submit">Add user</button>
-      </form>
-
-      <p>Lista de membros</p>
-      {tenant.members.map((member, index) => (
-        <div key={index}>
-          <p>{member.user.name}</p>
-          <p>{member.role}</p>
-          <button onClick={handleRemoveUser(member.user.id)}>
-            Remover user
+    <div className="modal-overlay" onClick={onClose}>
+      <dialog className="modal" open onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">{tenant.props.name}</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Close">
+            &times;
           </button>
         </div>
-      ))}
 
-      <button onClick={onClose}>Close</button>
-    </dialog>
+        <section className="modal-section">
+          <h3 className="modal-section-title">Add member</h3>
+          <form
+            className="modal-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAddUser();
+            }}
+          >
+            <div className="form-field">
+              <label className="form-label" htmlFor="member-name">Name</label>
+              <input
+                id="member-name"
+                className="form-input"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter name"
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label className="form-label" htmlFor="member-email">Email</label>
+              <input
+                id="member-email"
+                className="form-input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter email"
+                required
+              />
+            </div>
+            <div className="form-field form-field--small">
+              <label className="form-label" htmlFor="member-role">Role</label>
+              <select
+                id="member-role"
+                className="form-input"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+              >
+                <option value="member">Member</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <button className="btn btn--primary" type="submit">Add user</button>
+          </form>
+        </section>
+
+        <section className="modal-section">
+          <h3 className="modal-section-title">Members ({tenant.members.length})</h3>
+          {tenant.members.length === 0 ? (
+            <p className="empty-state">No members yet</p>
+          ) : (
+            <ul className="member-list">
+              {tenant.members.map((member, index) => (
+                <li className="member-item" key={index}>
+                  <div className="member-info">
+                    <span className="member-name">{member.user.name}</span>
+                    <span className={`member-role member-role--${member.role}`}>
+                      {member.role}
+                    </span>
+                  </div>
+                  <button
+                    className="btn btn--danger btn--small"
+                    onClick={handleRemoveUser(member.user.id)}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </dialog>
+    </div>
   );
 }
 
@@ -157,29 +185,36 @@ export default function Home() {
   };
 
   return (
-    <div>
+    <div className="home">
       <h1>Home</h1>
 
-      <p>Lista</p>
-      {tenantsCollection.tenants.values().map((tenant) => {
-        return (
-          <div key={tenant.props.id}>
-            <p>{tenant.props.name}</p>
-            <button onClick={showTenantDetails(tenant.props.id)}>
-              View details
-            </button>
-          </div>
-        );
-      })}
+      <div className="tenant-grid">
+        {tenantsCollection.tenants.values().map((tenant) => {
+          return (
+            <div className="tenant-card" key={tenant.props.id}>
+              <div className="tenant-card-body">
+                <h3 className="tenant-card-name">{tenant.props.name}</h3>
+                <p className="tenant-card-meta">
+                  {tenant.props.memberCount ?? tenant.members.length} member{(tenant.props.memberCount ?? tenant.members.length) !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <button
+                className="btn btn--primary"
+                onClick={showTenantDetails(tenant.props.id)}
+              >
+                View details
+              </button>
+            </div>
+          );
+        })}
+      </div>
 
       {selectedTenant ? (
         <TenantModal
           tenant={selectedTenant}
           onClose={() => setSelectedTenantId(null)}
         />
-      ) : (
-        <></>
-      )}
+      ) : null}
     </div>
   );
 }

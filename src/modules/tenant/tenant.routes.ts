@@ -6,6 +6,7 @@ import TenantModuleImpl from "./tenant.module.js";
 import { Container } from "../@common/Container.js";
 import UserModuleImpl from "../user/user.module.js";
 import { UserType } from "../user/query/UserQuery.js";
+import type { TenantListItem } from "./index.js";
 
 const TetantRoutes = (container: Container) => {
     const tenantModule = new TenantModuleImpl(db, container.get('mediator'), new TenantQuery(db));
