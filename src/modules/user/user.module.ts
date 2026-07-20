@@ -64,25 +64,6 @@ export default class UserModuleImpl implements ProjectUserModule, TenantUserModu
         });
     }
 
-    async getUserBy(input: GetUserCriteria) {
-        const user = input.term.userId
-            ? await new UserQuery(this._db).getById(input.term.userId)
-            : await new UserQuery(this._db).getByName(input.term.name);
-
-        if (!user) return null;
-
-        if (input.includes.includes('role') && input?.query?.tenantId) {
-            const userRole = await new UserQuery(this._db).getUserRoleByTenantIdAndUserId(input?.query?.tenantId, user.id);
-
-            return {
-                ...user,
-                role: userRole,
-            }
-        }
-
-        return user;
-    }
-
     async isSuperAdmin(userId: string): Promise<boolean> {
         const user = await new UserQuery(this._db).getById(userId);
         return user?.isSuperAdmin ?? false;
