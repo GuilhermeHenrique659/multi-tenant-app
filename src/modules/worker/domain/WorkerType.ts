@@ -1,22 +1,8 @@
-enum Type {
-    SCHEDULER,
-    VIEW,
-    ONCE,
-}
-
 export default class WorkerType {
-    constructor(private type: Type) { }
+    constructor(private type: string) { }
 
-    static scheduler() {
-        return new WorkerType(Type.SCHEDULER);
-    }
-
-    static view() {
-        return new WorkerType(Type.VIEW);
-    }
-
-    static once() {
-        return new WorkerType(Type.ONCE);
+    static create(type: string) {
+        return new WorkerType(type);
     }
 
     get value() {

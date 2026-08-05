@@ -1,3 +1,4 @@
-export default interface LLLMGateway {
-    sendRequest(request: any): Promise<any>;
+export default interface LLMGateway {
+    sendPrompt(request: any): Promise<any>;
+    
 }
