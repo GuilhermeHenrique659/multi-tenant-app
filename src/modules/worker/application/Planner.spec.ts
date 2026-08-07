@@ -4,7 +4,7 @@ import FakeLLMGateway from '../gateway/FakeLLMGateway.js';
 import PlanService from '../domain/PlanService.js';
 import FakeWorkerRepository from '../repository/FakeWorkerRepository.js';
 import WorkerCriteria from '../repository/WorkerCriteria.js';
-import { DomainEvent, Queue } from '../queue/Queue.js';
+import { DomainEvent, Queue, Unsubscribe } from '../../@common/queue/Queue.js';
 import Planner from './Planner.js';
 
 class FakeQueue implements Queue {
@@ -14,7 +14,9 @@ class FakeQueue implements Queue {
         this.published.push(event);
     }
 
-    async subscriber(): Promise<void> { }
+    async subscriber(): Promise<Unsubscribe> {
+        return () => { };
+    }
 }
 
 describe('Planner', () => {

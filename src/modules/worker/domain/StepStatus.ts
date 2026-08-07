@@ -28,4 +28,8 @@ export default class StepStatus {
     get value() {
         return this.status;
     }
+
+    public isCompleted() {
+        return this.status === "completed";
+    }
 }

@@ -1,6 +1,5 @@
 import type WorkerGateway from "../../gateway/worker/WorkerGateway";
-import type { Worker } from "../../model/Worker";
-import { Result } from "../../util/Result";
+import type { Result } from "../../util/Result";
 
 type PlanWorkerDependencies = {
     workerGateway: WorkerGateway;
@@ -12,13 +11,9 @@ type PlanWorkerInput = {
 }
 
 /**
- * The plan is built by the backend, so the created worker is read back from the
- * list to get its name and steps.
+ * Only asks for the plan: the worker and the status of its steps arrive through
+ * the stream, so there is nothing to read back here.
  */
-export const PlanWorker = (dependencies: PlanWorkerDependencies) => async (input: PlanWorkerInput): Promise<Result<Array<Worker>, Error>> => {
-    const created = await dependencies.workerGateway.plan(input.tenantId, input.userPrompt);
-
-    if (created.isErr()) return Result.Error(created.error);
-
-    return await dependencies.workerGateway.list(input.tenantId);
+export const PlanWorker = (dependencies: PlanWorkerDependencies) => async (input: PlanWorkerInput): Promise<Result<{ workerId: string }, Error>> => {
+    return await dependencies.workerGateway.plan(input.tenantId, input.userPrompt);
 }

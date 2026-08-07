@@ -12,6 +12,7 @@ type StepProps = {
     order: number;
     type: StepType;
     status: StepStatus;
+    error?: string | undefined;
 }
 
 class Step extends Subject {
@@ -50,8 +51,18 @@ class Step extends Subject {
         return this.props.type
     };
 
+    /** Why the step failed, when it did. */
+    get error() {
+        return this.props.error
+    };
+
     get changes() {
         return this._event.changes;
+    }
+
+    public setAsRunning() {
+        this.props.status = StepStatus.running();
+        this.notify({ event: 'StatusChanged', data: this.props.status.value })
     }
 
     public setAsComplete() {
@@ -59,10 +70,11 @@ class Step extends Subject {
         this.notify({ event: 'StatusChanged', data: this.props.status.value })
     }
 
-    public setAsError() {
+    /** The reason is kept so a resume can be planned knowing what went wrong. */
+    public setAsError(reason?: string) {
         this.props.status = StepStatus.failed();
+        this.props.error = reason;
         this.notify({ event: 'StatusChanged', data: this.props.status.value })
-
     }
 
     static create(workerId: string, action: string, input: any, order: number, type: StepType) {
@@ -77,7 +89,7 @@ class Step extends Subject {
         })
     }
 
-    static restore(props: { id: string; workerId: string; action: string; input: any; order: number; type: string; status: string }) {
+    static restore(props: { id: string; workerId: string; action: string; input: any; order: number; type: string; status: string; error?: string | null }) {
         return new Step({
             id: new Id(props.id),
             workerId: new Id(props.workerId),
@@ -86,6 +98,7 @@ class Step extends Subject {
             order: props.order,
             type: StepType.create(props.type),
             status: StepStatus.create(props.status),
+            ...(props.error ? { error: props.error } : {}),
         })
     }
 }

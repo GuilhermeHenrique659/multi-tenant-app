@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import ChangeTrackingObserver from "../../@common/ChangeTrackingObserver.js";
 import { DrizzleCriteriaApply } from "../../@common/DrizzleCriteriaApply.js";
@@ -8,6 +8,11 @@ import { WorkerStepTable } from "../db/WorkerStepTable.js";
 import { WorkerTable } from "../db/WorkerTable.js";
 import WorkerCriteria from "./WorkerCriteria.js";
 import WorkerRepository from "./WorkerRepository.js";
+
+type ReplanChange = {
+    removed: string[];
+    added: string[];
+}
 
 export default class WorkerRepositoryDatabase implements WorkerRepository {
     constructor(private readonly _db: NodePgDatabase) { }
@@ -20,6 +25,10 @@ export default class WorkerRepositoryDatabase implements WorkerRepository {
             return;
         }
 
+        const replanned = tracker.findFindEvent("stepsReplanned");
+
+        if (replanned) await this._applyReplan(worker, replanned.data as ReplanChange);
+
         for (const step of worker.steps.getAll()) {
             const stepTracker = step.findObserver<ChangeTrackingObserver>(o => o instanceof ChangeTrackingObserver);
 
@@ -27,6 +36,7 @@ export default class WorkerRepositoryDatabase implements WorkerRepository {
 
             await this._db.update(WorkerStepTable).set({
                 status: step.status.value,
+                error: step.error ?? null,
             }).where(eq(WorkerStepTable.id, step.id.value));
         }
     }
@@ -50,6 +60,7 @@ export default class WorkerRepositoryDatabase implements WorkerRepository {
             id: worker.id,
             tenantId: worker.tenantId,
             name: worker.name,
+            userPrompt: worker.userPrompt,
             type: worker.type,
             createdAt: worker.createdAt,
             steps: steps.map(step => Step.restore({
@@ -60,29 +71,49 @@ export default class WorkerRepositoryDatabase implements WorkerRepository {
                 order: step.order,
                 type: step.type,
                 status: step.status,
+                error: step.error,
             })),
         });
+    }
+
+    /** The steps the new plan dropped leave the table and the ones it created enter it. */
+    private async _applyReplan(worker: Worker, change: ReplanChange): Promise<void> {
+        if (change.removed.length) {
+            await this._db.delete(WorkerStepTable).where(inArray(WorkerStepTable.id, change.removed));
+        }
+
+        const added = worker.steps.getAll().filter(step => change.added.includes(step.id.value));
+
+        for (const step of added) {
+            await this._insertStep(worker, step);
+        }
     }
 
     private async _add(worker: Worker): Promise<void> {
         await this._db.insert(WorkerTable).values({
             id: worker.id,
             name: worker.name,
+            userPrompt: worker.userPrompt,
             type: worker.type.value,
             tenantId: worker.tenantId,
             createdAt: worker.createdAt,
         });
 
         for (const step of worker.steps.getAll()) {
-            await this._db.insert(WorkerStepTable).values({
-                id: step.id.value,
-                workerId: worker.id,
-                action: step.action,
-                input: step.input,
-                order: step.order,
-                type: step.type.value,
-                status: step.status.value,
-            });
+            await this._insertStep(worker, step);
         }
+    }
+
+    private async _insertStep(worker: Worker, step: Step): Promise<void> {
+        await this._db.insert(WorkerStepTable).values({
+            id: step.id.value,
+            workerId: worker.id,
+            action: step.action,
+            input: step.input,
+            order: step.order,
+            type: step.type.value,
+            status: step.status.value,
+            error: step.error ?? null,
+        });
     }
 }

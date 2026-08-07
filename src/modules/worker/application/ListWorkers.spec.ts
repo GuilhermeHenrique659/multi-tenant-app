@@ -16,14 +16,14 @@ class FakeWorkerQuery {
 }
 
 describe('ListWorkers', () => {
-    it('lists the workers of the tenant with the action and the status of each step', async () => {
+    it('lists the workers of the tenant with the action, the status and the order of each step', async () => {
         const query = new FakeWorkerQuery([
             {
                 id: 'worker-1',
                 name: 'Bootstrap project',
                 steps: [
-                    { action: 'createProject', status: 'completed' },
-                    { action: 'addTask', status: 'pending' },
+                    { action: 'createProject', status: 'completed', order: 1 },
+                    { action: 'addTask', status: 'pending', order: 2 },
                 ],
             },
         ]);
@@ -38,8 +38,8 @@ describe('ListWorkers', () => {
                 id: 'worker-1',
                 name: 'Bootstrap project',
                 steps: [
-                    { action: 'createProject', status: 'completed' },
-                    { action: 'addTask', status: 'pending' },
+                    { action: 'createProject', status: 'completed', order: 1 },
+                    { action: 'addTask', status: 'pending', order: 2 },
                 ],
             },
         ]);

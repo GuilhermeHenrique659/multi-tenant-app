@@ -5,6 +5,7 @@ import { ModelCollection } from "./common/Collection";
 const WorkerStepSchema = z.object({
     action: z.string(),
     status: z.string(),
+    order: z.number(),
 });
 
 const WorkerSchema = z.object({

@@ -15,7 +15,10 @@ import ProjectModule from './modules/project/project.module.js';
 import TenantModuleImpl from './modules/tenant/tenant.module.js';
 import WorkerModule, { WorkerModuleKey } from './modules/worker/worker.module.js';
 import { WorkerUserModuleKey } from './modules/worker/UserModule.js';
-import InMemoryQueue from './modules/worker/queue/InMemoryQueue.js';
+import InMemoryQueue from './modules/@common/queue/InMemoryQueue.js';
+import { QueueKey } from './modules/@common/queue/Queue.js';
+import { EventStream, EventStreamsKey } from './modules/sse/index.js';
+import WorkerEventStream from './modules/worker/WorkerEventStream.js';
 import OpenRouterLLMGateway from './modules/worker/gateway/OpenRouterLLMGateway.js';
 import loadOpenRouterConfig from './modules/worker/gateway/openRouterConfig.js';
 import path from 'node:path';
@@ -57,6 +60,12 @@ async function main() {
     const workerModule = new WorkerModule(db, new OpenRouterLLMGateway(loadOpenRouterConfig()), workerQueue, mediator, userModule);
     await workerModule.listen();
     container.register(WorkerModuleKey, workerModule);
+    container.register(QueueKey, workerQueue);
+
+    const eventStreams = new Map<string, EventStream>([
+        ['workers', new WorkerEventStream(workerModule)],
+    ]);
+    container.register(EventStreamsKey, eventStreams);
 
     mediator.register('checkInUser', async (input: any) => {
         return userModule.checkInUser(input);

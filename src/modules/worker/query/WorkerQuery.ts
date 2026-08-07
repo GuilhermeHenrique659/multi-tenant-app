@@ -9,6 +9,7 @@ export type WorkerStepRow = {
     name: string;
     stepAction: string | null;
     stepStatus: string | null;
+    stepOrder: number | null;
 };
 
 /** One row per step, so the rows of a worker are folded into a single item. */
@@ -18,7 +19,7 @@ export function toWorkerList(rows: WorkerStepRow[]): WorkerListItem[] {
     for (const row of rows) {
         const worker = workers.get(row.id) ?? { id: row.id, name: row.name, steps: [] };
 
-        if (row.stepAction) worker.steps.push({ action: row.stepAction, status: row.stepStatus ?? 'pending' });
+        if (row.stepAction) worker.steps.push({ action: row.stepAction, status: row.stepStatus ?? 'pending', order: row.stepOrder ?? 0 });
 
         workers.set(row.id, worker);
     }
@@ -35,6 +36,7 @@ export default class WorkerQuery {
             name: WorkerTable.name,
             stepAction: WorkerStepTable.action,
             stepStatus: WorkerStepTable.status,
+            stepOrder: WorkerStepTable.order,
         })
             .from(WorkerTable)
             .leftJoin(WorkerStepTable, eq(WorkerStepTable.workerId, WorkerTable.id))

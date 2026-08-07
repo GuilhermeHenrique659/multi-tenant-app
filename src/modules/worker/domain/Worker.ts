@@ -10,6 +10,7 @@ type WorkerProps = {
     id: Id;
     tenantId: Id;
     name: string;
+    userPrompt: string;
     type: WorkerType;
     steps: StepCollection;
     createdAt: Date;
@@ -24,7 +25,6 @@ export type PlannedStep = {
 
 export default class Worker extends Subject {
     private readonly _event = new ChangeTrackingObserver();
-    private step?: Step;
 
     constructor(private readonly props: WorkerProps) {
         super();
@@ -43,6 +43,11 @@ export default class Worker extends Subject {
         return this.props.name;
     }
 
+    /** What the user asked for, kept for when the plan has to be analysed again. */
+    get userPrompt() {
+        return this.props.userPrompt;
+    }
+
     get type() {
         return this.props.type;
     }
@@ -55,12 +60,9 @@ export default class Worker extends Subject {
         return this.props.createdAt;
     }
 
+    /** The first step that is not completed yet, so a resumed worker does not repeat work. */
     public nextStep() {
-        const next = this.step ? this.props.steps.getNext(this.step) : this.props.steps.getAll().at(0);
-
-        if (next) this.step = next;
-
-        return next;
+        return this.props.steps.getAll().find(step => !step.status.isCompleted());
     }
 
     public plan(steps: PlannedStep[]) {
@@ -71,14 +73,41 @@ export default class Worker extends Subject {
         this.notify({ event: 'stepsPlanned', data: { workerId: this.id } });
     }
 
-    public isDone() {
-        return this.props.steps.getAll().every(step => step.status.value === "completed");
+    /**
+     * Keeps what is already completed and replaces everything the worker did not
+     * finish with the steps of the new plan, whose order continues from there.
+     */
+    public replan(steps: PlannedStep[]) {
+        const current = this.props.steps.getAll();
+        const completed = current.filter(step => step.status.isCompleted());
+        const discarded = current.filter(step => !step.status.isCompleted());
+        const lastOrder = completed.at(-1)?.order ?? 0;
+
+        const added = [...steps]
+            .sort((a, b) => a.order - b.order)
+            .map((step, index) => Step.create(this.props.id.value, step.action, step.input, lastOrder + index + 1, step.type));
+
+        this.props.steps = new StepCollection([...completed, ...added]);
+
+        this.notify({
+            event: 'stepsReplanned',
+            data: {
+                workerId: this.id,
+                removed: discarded.map(step => step.id.value),
+                added: added.map(step => step.id.value),
+            },
+        });
     }
 
-    static create(tenantId: string, name: string, type: WorkerType, steps: StepCollection) {
+    public isDone() {
+        return this.props.steps.getAll().every(step => step.status.isCompleted());
+    }
+
+    static create(tenantId: string, name: string, userPrompt: string, type: WorkerType, steps: StepCollection) {
         const worker = new Worker({
             tenantId: new Id(tenantId),
             name,
+            userPrompt,
             type,
             steps,
             id: Id.create(),
@@ -90,11 +119,12 @@ export default class Worker extends Subject {
         return worker;
     }
 
-    static restore(props: { id: string; tenantId: string; name: string; type: string; steps: Step[]; createdAt: Date }) {
+    static restore(props: { id: string; tenantId: string; name: string; userPrompt: string; type: string; steps: Step[]; createdAt: Date }) {
         return new Worker({
             id: new Id(props.id),
             tenantId: new Id(props.tenantId),
             name: props.name,
+            userPrompt: props.userPrompt,
             type: WorkerType.create(props.type),
             steps: new StepCollection(props.steps),
             createdAt: props.createdAt,

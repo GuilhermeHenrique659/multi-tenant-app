@@ -1,18 +1,21 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import DeferredQueue from './DeferredQueue.js';
-import { DomainEvent, Queue } from './Queue.js';
+import { DomainEvent, Queue, Unsubscribe } from './Queue.js';
 
 class SpyQueue implements Queue {
     readonly published: DomainEvent[] = [];
     readonly subscribed: string[] = [];
+    unsubscribed = false;
 
     async publish(event: DomainEvent): Promise<void> {
         this.published.push(event);
     }
 
-    async subscriber(event: string): Promise<void> {
+    async subscriber(event: string): Promise<Unsubscribe> {
         this.subscribed.push(event);
+
+        return () => { this.unsubscribed = true };
     }
 }
 
@@ -47,8 +50,12 @@ describe('DeferredQueue', () => {
         const inner = new SpyQueue();
         const queue = new DeferredQueue(inner);
 
-        await queue.subscriber('WorkerCreated', async () => { });
+        const unsubscribe = await queue.subscriber('WorkerCreated', async () => { });
 
         assert.deepEqual(inner.subscribed, ['WorkerCreated']);
+
+        unsubscribe();
+
+        assert.equal(inner.unsubscribed, true);
     });
 });

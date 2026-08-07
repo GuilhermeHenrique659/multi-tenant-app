@@ -1,7 +1,5 @@
-import Logger from "../../@common/Logger.js";
-import { DomainEvent, Queue } from "./Queue.js";
-
-type Subscriber = (data: any) => Promise<void>;
+import Logger from "../Logger.js";
+import { DomainEvent, Queue, Subscriber, Unsubscribe } from "./Queue.js";
 
 /**
  * In process queue: `publish` returns as soon as the event is queued and the
@@ -18,7 +16,8 @@ export default class InMemoryQueue implements Queue {
             return;
         }
 
-        for (const subscriber of subscribers) {
+        // Copied: a subscriber may unsubscribe while the loop is still running.
+        for (const subscriber of [...subscribers]) {
             setImmediate(() => {
                 subscriber(event.data).catch(err => {
                     Logger.error(`Failed to handle event ${event.eventName}: ${(err as Error).message}`);
@@ -27,11 +26,26 @@ export default class InMemoryQueue implements Queue {
         }
     }
 
-    async subscriber(event: string, fn: Subscriber): Promise<void> {
+    async subscriber(event: string, fn: Subscriber): Promise<Unsubscribe> {
         const subscribers = this.subscribers.get(event) ?? [];
 
         subscribers.push(fn);
 
         this.subscribers.set(event, subscribers);
+
+        return () => this._remove(event, fn);
+    }
+
+    /** Safe to call more than once: the second call finds nothing to remove. */
+    private _remove(event: string, fn: Subscriber): void {
+        const subscribers = this.subscribers.get(event);
+
+        if (!subscribers) return;
+
+        const index = subscribers.indexOf(fn);
+
+        if (index === -1) return;
+
+        subscribers.splice(index, 1);
     }
 }

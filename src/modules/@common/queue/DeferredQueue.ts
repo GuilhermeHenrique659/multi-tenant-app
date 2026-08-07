@@ -1,4 +1,4 @@
-import { DomainEvent, Queue } from "./Queue.js";
+import { DomainEvent, Queue, Subscriber, Unsubscribe } from "./Queue.js";
 
 /**
  * Buffers what is published inside a database transaction and only hands the
@@ -14,8 +14,8 @@ export default class DeferredQueue implements Queue {
         this.events.push(event);
     }
 
-    async subscriber(event: string, fn: (data: any) => Promise<void>): Promise<void> {
-        await this.queue.subscriber(event, fn);
+    async subscriber(event: string, fn: Subscriber): Promise<Unsubscribe> {
+        return await this.queue.subscriber(event, fn);
     }
 
     public async flush(): Promise<void> {

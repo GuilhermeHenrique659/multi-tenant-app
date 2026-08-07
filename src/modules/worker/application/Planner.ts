@@ -1,31 +1,42 @@
 import AuthorizerApplicationService, { AuthorizedInput } from "../../@common/AuthorizerApplicationService.js";
+import elapsedSince from "../../@common/elapsedSince.js";
+import Logger from "../../@common/Logger.js";
 import PlanService from "../domain/PlanService.js";
 import StepCollection from "../domain/StepCollection.js";
 import Worker from "../domain/Worker.js";
 import WorkerType from "../domain/WorkerType.js";
-import { Queue } from "../queue/Queue.js";
+import { Queue } from "../../@common/queue/Queue.js";
+import { WorkerCreated } from "../domain/WorkerEvents.js";
 import WorkerRepository from "../repository/WorkerRepository.js";
 
 export default class Planner implements AuthorizerApplicationService<Input, Output> {
     constructor(private readonly workerRepository: WorkerRepository, private readonly planService: PlanService, private readonly _queue: Queue) { }
 
     public async execute(input: Input): Promise<Output> {
+        const startedAt = performance.now();
+
         const [planError, plan] = await this.planService.create({
             userPrompt: input.userPrompt,
             tenantId: input.tenantId,
             userId: input.userId,
         });
 
-        if (planError) throw planError;
+        if (planError) {
+            Logger.error(`Planning failed after ${elapsedSince(startedAt)}ms: ${planError.message}`);
 
-        const worker = Worker.create(input.tenantId, plan.name, WorkerType.create(plan.type), StepCollection.empty());
+            throw planError;
+        }
+
+        Logger.info(`Planned "${plan.name}" with ${plan.steps.length} steps in ${elapsedSince(startedAt)}ms`);
+
+        const worker = Worker.create(input.tenantId, plan.name, input.userPrompt, WorkerType.create(plan.type), StepCollection.empty());
 
         worker.plan(plan.steps);
 
         await this.workerRepository.save(worker);
 
         await this._queue.publish({
-            eventName: 'WorkerCreated',
+            eventName: WorkerCreated,
             data: { workerId: worker.id, tenantId: input.tenantId, userId: input.userId },
         })
 

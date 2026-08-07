@@ -45,6 +45,22 @@ const WorkerRoutes = (container: Container) => {
         }
     );
 
+    workerRoutes.post('/:workerId/resume',
+        authenticationMiddleware,
+        async (req: Request, res: Response) => {
+            const tenantId = getHeader(req, 'x-tenant-id');
+            const userId = getHeader(req, 'x-user-id');
+
+            const result = await workerModule.resume({
+                tenantId,
+                userId,
+                workerId: req.params.workerId as string,
+            });
+
+            res.status(202).json(result);
+        }
+    );
+
     return workerRoutes;
 }
 

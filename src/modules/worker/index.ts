@@ -15,6 +15,12 @@ export type RunWorkerRequest = {
     workerId: string;
 }
 
+export type ResumeWorkerRequest = {
+    userId: string;
+    tenantId: string;
+    workerId: string;
+}
+
 export type ListWorkersRequest = {
     userId: string;
     tenantId: string;
@@ -23,5 +29,5 @@ export type ListWorkersRequest = {
 export type WorkerListItem = {
     id: string;
     name: string;
-    steps: { action: string; status: string }[];
+    steps: { action: string; status: string; order: number }[];
 }

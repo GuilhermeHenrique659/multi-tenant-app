@@ -1,3 +1,5 @@
+import elapsedSince from "../../@common/elapsedSince.js";
+import Logger from "../../@common/Logger.js";
 import { Err, Ok, TupleResult } from "../../@common/TupleResult.js";
 import LLMGateway, { LLMRequest, LLMResponse } from "./LLMGateway.js";
 import { OpenRouterConfig } from "./openRouterConfig.js";
@@ -25,6 +27,14 @@ export default class OpenRouterLLMGateway implements LLMGateway {
     public async chat(request: LLMRequest): Promise<TupleResult<LLMResponse>> {
         let result: OpenRouterResult;
 
+        // The json schema names each call (`worker_plan`, `step_input`, ...), so the logs
+        // say which part of the run is waiting on the provider.
+        const call = request.jsonSchema?.name || 'chat';
+        const model = request.model || this.config.model;
+        const startedAt = performance.now();
+
+        Logger.info(`LLM ${call} -> ${model}: requesting (${this._promptSize(request)} prompt chars)`);
+
         try {
             const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
                 method: 'POST',
@@ -33,17 +43,30 @@ export default class OpenRouterLLMGateway implements LLMGateway {
             });
 
             if (!response.ok) {
-                return Err(`OpenRouter error ${response.status}: ${await response.text()}`);
+                const body = await response.text();
+
+                Logger.error(`LLM ${call} -> ${model}: failed with ${response.status} in ${elapsedSince(startedAt)}ms: ${body}`);
+
+                return Err(`OpenRouter error ${response.status}: ${body}`);
             }
 
             result = await response.json() as OpenRouterResult;
         } catch (err) {
-            return Err(err instanceof Error ? err : new Error('OpenRouter request failed'));
+            const error = err instanceof Error ? err : new Error('OpenRouter request failed');
+
+            Logger.error(`LLM ${call} -> ${model}: transport failed in ${elapsedSince(startedAt)}ms: ${error.message}`);
+
+            return Err(error);
         }
 
+        const elapsed = elapsedSince(startedAt);
         const content = result.choices?.[0]?.message?.content;
 
-        if (!content) return Err('OpenRouter returned no content');
+        if (!content) {
+            Logger.error(`LLM ${call} -> ${model}: answered without content in ${elapsed}ms`);
+
+            return Err('OpenRouter returned no content');
+        }
 
         const llmResponse: LLMResponse = {
             content,
@@ -58,7 +81,17 @@ export default class OpenRouterLLMGateway implements LLMGateway {
             };
         }
 
+        const usage = llmResponse.usage
+            ? `${llmResponse.usage.promptTokens} prompt + ${llmResponse.usage.completionTokens} completion tokens`
+            : 'usage not reported';
+
+        Logger.info(`LLM ${call} -> ${llmResponse.model}: answered in ${elapsed}ms (${usage})`);
+
         return Ok(llmResponse);
+    }
+
+    private _promptSize(request: LLMRequest): number {
+        return request.messages.reduce((total, message) => total + message.content.length, 0);
     }
 
     private _headers(): Record<string, string> {

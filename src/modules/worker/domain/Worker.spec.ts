@@ -9,7 +9,7 @@ import WorkerType from './WorkerType.js';
 
 describe('Worker', () => {
     function createPlannedWorker() {
-        const worker = Worker.create('tenant-1', 'Bootstrap project', WorkerType.create('project'), StepCollection.empty());
+        const worker = Worker.create('tenant-1', 'Bootstrap project', 'create a project named App with a first task', WorkerType.create('project'), StepCollection.empty());
 
         worker.plan([
             { action: 'createProject', input: { name: 'App' }, order: 1, type: StepType.action() },
@@ -39,8 +39,16 @@ describe('Worker', () => {
     it('walks the steps in order and stops at the end', () => {
         const worker = createPlannedWorker();
 
-        assert.equal(worker.nextStep()?.action, 'createProject');
-        assert.equal(worker.nextStep()?.action, 'addTask');
+        const first = worker.nextStep();
+        assert.equal(first?.action, 'createProject');
+
+        first?.setAsComplete();
+
+        const second = worker.nextStep();
+        assert.equal(second?.action, 'addTask');
+
+        second?.setAsComplete();
+
         assert.equal(worker.nextStep(), undefined);
     });
 
@@ -49,6 +57,7 @@ describe('Worker', () => {
             id: 'worker-1',
             tenantId: 'tenant-1',
             name: 'Bootstrap project',
+            userPrompt: 'create a project named App with a first task',
             type: 'project',
             createdAt: new Date('2026-08-07T10:00:00.000Z'),
             steps: [
@@ -62,7 +71,8 @@ describe('Worker', () => {
         assert.equal(restored.type.value, 'project');
         assert.deepEqual(restored.steps.getAll().map(step => step.action), ['createProject', 'addTask']);
         assert.equal(restored.isDone(), false);
-        assert.equal(restored.nextStep()?.id.value, 'step-1');
+        // The completed step is skipped, so a resumed worker does not repeat it.
+        assert.equal(restored.nextStep()?.id.value, 'step-2');
     });
 
     it('does not report itself as created when it comes from the database', () => {
@@ -70,6 +80,7 @@ describe('Worker', () => {
             id: 'worker-1',
             tenantId: 'tenant-1',
             name: 'Bootstrap project',
+            userPrompt: 'create a project named App with a first task',
             type: 'project',
             createdAt: new Date('2026-08-07T10:00:00.000Z'),
             steps: [],

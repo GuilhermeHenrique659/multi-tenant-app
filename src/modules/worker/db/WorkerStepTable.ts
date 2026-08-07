@@ -9,4 +9,6 @@ export const WorkerStepTable = pgTable("worker_steps", {
     order: integer("step_order").notNull(),
     type: varchar("type").notNull(),
     status: varchar("status").notNull(),
+    /** Why the step failed, so the plan can be analysed again with the reason. */
+    error: varchar("error"),
 })

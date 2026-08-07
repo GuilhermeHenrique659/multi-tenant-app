@@ -21,7 +21,7 @@ describe('Orchestrator', () => {
         { action: 'createProject', input: { name: 'App' }, order: 1, type: StepType.action() },
         { action: 'addTask', input: { name: 'First task', projectId: '<from step 1>' }, order: 2, type: StepType.action() },
     ]) {
-        const worker = Worker.create('tenant-1', 'Bootstrap project', WorkerType.create('project'), StepCollection.empty());
+        const worker = Worker.create('tenant-1', 'Bootstrap project', 'create a project named App with a first task', WorkerType.create('project'), StepCollection.empty());
         worker.plan(steps);
         return worker;
     }
@@ -85,7 +85,8 @@ describe('Orchestrator', () => {
         const steps = worker.steps.getAll();
         assert.equal(steps[0]!.status.value, 'failed');
         assert.equal(steps[1]!.status.value, 'pending');
-        assert.equal(repository.saveCount, 2);
+        // setup + the save that marks the step running + the save of the failure
+        assert.equal(repository.saveCount, 3);
     });
 
     it('saves the failed step when the llm cannot resolve the input', async () => {
@@ -105,7 +106,8 @@ describe('Orchestrator', () => {
         const steps = worker.steps.getAll();
         assert.equal(steps[0]!.status.value, 'failed');
         assert.equal(steps[1]!.status.value, 'pending');
-        assert.equal(repository.saveCount, 2);
+        // setup + the save that marks the step running + the save of the failure
+        assert.equal(repository.saveCount, 3);
     });
 
     it('keeps the step complete and saves when only the memory cannot be built', async () => {
@@ -131,7 +133,8 @@ describe('Orchestrator', () => {
         const steps = worker.steps.getAll();
         assert.equal(steps[0]!.status.value, 'completed');
         assert.equal(steps[1]!.status.value, 'pending');
-        assert.equal(repository.saveCount, 2);
+        // setup + the save that marks the step running + the save of the failure
+        assert.equal(repository.saveCount, 3);
     });
 
     it('rejects a worker that does not exist', async () => {

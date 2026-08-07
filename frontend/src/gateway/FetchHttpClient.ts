@@ -1,14 +1,10 @@
-import type { UserProps } from "../model/User";
 import type HttpClient from "./HttpClient";
+import { currentUser } from "./currentUser";
 import { Result } from "../util/Result";
 
 export default class FetchHttpClient implements HttpClient {
     private _getUser() {
-        const user = localStorage.getItem('user');
-
-        if (!user) return null;
-
-        return JSON.parse(user) as UserProps;
+        return currentUser();
     }
 
     async get<T>(url: string, options?: RequestInit): Promise<Result<T, Error>> {
