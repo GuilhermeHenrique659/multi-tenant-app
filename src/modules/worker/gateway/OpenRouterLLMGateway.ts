@@ -1,3 +1,4 @@
+import { Err, Ok, TupleResult } from "../../@common/TupleResult.js";
 import LLMGateway, { LLMRequest, LLMResponse } from "./LLMGateway.js";
 import { OpenRouterConfig } from "./openRouterConfig.js";
 
@@ -21,21 +22,28 @@ type OpenRouterResult = {
 export default class OpenRouterLLMGateway implements LLMGateway {
     constructor(private readonly config: OpenRouterConfig) { }
 
-    public async chat(request: LLMRequest): Promise<LLMResponse> {
-        const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: this._headers(),
-            body: JSON.stringify(this._body(request)),
-        });
+    public async chat(request: LLMRequest): Promise<TupleResult<LLMResponse>> {
+        let result: OpenRouterResult;
 
-        if (!response.ok) {
-            throw new Error(`OpenRouter error ${response.status}: ${await response.text()}`);
+        try {
+            const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+                method: 'POST',
+                headers: this._headers(),
+                body: JSON.stringify(this._body(request)),
+            });
+
+            if (!response.ok) {
+                return Err(`OpenRouter error ${response.status}: ${await response.text()}`);
+            }
+
+            result = await response.json() as OpenRouterResult;
+        } catch (err) {
+            return Err(err instanceof Error ? err : new Error('OpenRouter request failed'));
         }
 
-        const result = await response.json() as OpenRouterResult;
         const content = result.choices?.[0]?.message?.content;
 
-        if (!content) throw new Error('OpenRouter returned no content');
+        if (!content) return Err('OpenRouter returned no content');
 
         const llmResponse: LLMResponse = {
             content,
@@ -50,7 +58,7 @@ export default class OpenRouterLLMGateway implements LLMGateway {
             };
         }
 
-        return llmResponse;
+        return Ok(llmResponse);
     }
 
     private _headers(): Record<string, string> {

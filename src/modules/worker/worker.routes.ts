@@ -33,6 +33,18 @@ const WorkerRoutes = (container: Container) => {
         }
     );
 
+    workerRoutes.get('/',
+        authenticationMiddleware,
+        async (req: Request, res: Response) => {
+            const tenantId = getHeader(req, 'x-tenant-id');
+            const userId = getHeader(req, 'x-user-id');
+
+            const result = await workerModule.listWorkers({ tenantId, userId });
+
+            res.status(200).json(result);
+        }
+    );
+
     return workerRoutes;
 }
 

@@ -1,7 +1,9 @@
-export default function parseLLMContent(content: string, subject: string): any {
+import { Err, Ok, TupleResult } from "../../@common/TupleResult.js";
+
+export default function parseLLMContent(content: string, subject: string): TupleResult<any> {
     try {
-        return JSON.parse(content);
+        return Ok(JSON.parse(content));
     } catch {
-        throw new Error(`llm returned an invalid json for the ${subject}`);
+        return Err(`llm returned an invalid json for the ${subject}`);
     }
 }

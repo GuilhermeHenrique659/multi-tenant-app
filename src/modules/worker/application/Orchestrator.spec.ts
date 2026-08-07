@@ -88,6 +88,52 @@ describe('Orchestrator', () => {
         assert.equal(repository.saveCount, 2);
     });
 
+    it('saves the failed step when the llm cannot resolve the input', async () => {
+        const worker = createWorker();
+        await repository.save(worker);
+
+        const gateway = new FakeLLMGateway([new Error('OpenRouter error 429: rate limited')]);
+
+        const orchestrator = new Orchestrator(repository, new StepService(gateway), new Mediator());
+
+        await assert.rejects(() => orchestrator.execute({
+            workerId: worker.id,
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+        }), /rate limited/);
+
+        const steps = worker.steps.getAll();
+        assert.equal(steps[0]!.status.value, 'failed');
+        assert.equal(steps[1]!.status.value, 'pending');
+        assert.equal(repository.saveCount, 2);
+    });
+
+    it('keeps the step complete and saves when only the memory cannot be built', async () => {
+        const worker = createWorker();
+        await repository.save(worker);
+
+        const gateway = new FakeLLMGateway([
+            '{"input":{"name":"App","tenantId":"tenant-1","userId":"user-1"}}',
+            new Error('OpenRouter error 500: boom'),
+        ]);
+
+        const mediator = new Mediator();
+        mediator.register('createProject', async () => 'project project-1 created');
+
+        const orchestrator = new Orchestrator(repository, new StepService(gateway), mediator);
+
+        await assert.rejects(() => orchestrator.execute({
+            workerId: worker.id,
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+        }), /boom/);
+
+        const steps = worker.steps.getAll();
+        assert.equal(steps[0]!.status.value, 'completed');
+        assert.equal(steps[1]!.status.value, 'pending');
+        assert.equal(repository.saveCount, 2);
+    });
+
     it('rejects a worker that does not exist', async () => {
         const orchestrator = new Orchestrator(repository, new StepService(new FakeLLMGateway([])), new Mediator());
 
@@ -124,5 +170,7 @@ describe('Orchestrator', () => {
             tenantId: 'tenant-1',
             userId: 'user-1',
         }), /step type not supported yet: ask/);
+
+        assert.equal(repository.saveCount, 2);
     });
 });

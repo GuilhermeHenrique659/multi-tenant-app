@@ -1,15 +1,18 @@
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import Logger from "../@common/Logger.js";
 import Mediator from "../@common/Mediator.js";
+import ListWorkers from "./application/ListWorkers.js";
 import Orchestrator from "./application/Orchestrator.js";
 import Planner from "./application/Planner.js";
 import PlanService from "./domain/PlanService.js";
 import StepService from "./domain/StepService.js";
 import LLMGateway from "./gateway/LLMGateway.js";
+import WorkerQuery from "./query/WorkerQuery.js";
 import DeferredQueue from "./queue/DeferredQueue.js";
 import { Queue } from "./queue/Queue.js";
 import WorkerRepositoryDatabase from "./repository/WorkerRepositoryDatabase.js";
-import { PlanWorkerOutput, PlanWorkerRequest, RunWorkerRequest } from "./index.js";
+import { WorkerUserModule } from "./UserModule.js";
+import { ListWorkersRequest, PlanWorkerOutput, PlanWorkerRequest, RunWorkerRequest, WorkerListItem } from "./index.js";
 
 export const WorkerModuleKey = "WorkerModule";
 
@@ -19,6 +22,7 @@ export default class WorkerModule {
         private readonly _llmGateway: LLMGateway,
         private readonly _queue: Queue,
         private readonly _mediator: Mediator,
+        private readonly _userModule: WorkerUserModule,
     ) { }
 
     public async plan(input: PlanWorkerRequest): Promise<PlanWorkerOutput> {
@@ -27,13 +31,21 @@ export default class WorkerModule {
         const output = await this._db.transaction(async (tx) => {
             const workerRepository = new WorkerRepositoryDatabase(tx);
             const planner = new Planner(workerRepository, new PlanService(this._llmGateway), deferredQueue);
+            const authorizer = this._userModule.authorizer(planner, ['worker:create']);
 
-            return planner.execute(input);
+            return authorizer.execute(input);
         });
 
         await deferredQueue.flush();
 
         return output;
+    }
+
+    public async listWorkers(input: ListWorkersRequest): Promise<WorkerListItem[]> {
+        const listWorkers = new ListWorkers(new WorkerQuery(this._db));
+        const authorizer = this._userModule.authorizer(listWorkers, ['worker:read']);
+
+        return await authorizer.execute(input);
     }
 
     /**

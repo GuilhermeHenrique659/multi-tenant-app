@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { projectsStore, type Project, type ProjectCollection } from "../model/Project";
 import { tasksStore, type Task, type TaskCollection } from "../model/Task";
 import { ModelCollection } from "../model/common/Collection";
@@ -54,11 +54,17 @@ export const useTaskStore = <T>(
     );
 }
 
+/**
+ * The snapshot is the collection, never a derived array: a new array on every
+ * snapshot read makes useSyncExternalStore re-render forever. The filtered list
+ * is memoized on the collection instead.
+ */
 export const useTasksByProject = (projectId: string | null): Task[] => {
-    return useTaskStore(state =>
-        projectId === null
-            ? []
-            : state.tasks.values().filter(t => t.props.projectId === projectId)
+    const tasks = useTaskStore(state => state.tasks);
+
+    return useMemo(
+        () => projectId === null ? [] : tasks.values().filter(t => t.props.projectId === projectId),
+        [tasks, projectId]
     );
 }
 

@@ -1,3 +1,4 @@
+import { Err, Ok, TupleResult } from "../../@common/TupleResult.js";
 import LLMGateway, { LLMRequest } from "../gateway/LLMGateway.js";
 import { ModuleCapabilities } from "./ModuleCapabilities.js";
 import parseLLMContent from "./parseLLMContent.js";
@@ -34,8 +35,10 @@ const INTERPRET_OUTPUT_INSTRUCTIONS = [
 export default class StepService {
     constructor(private readonly llmGateway: LLMGateway) { }
 
-    public async resolveInput({ step, memory, tenantId, userId }: ResolveInputParams): Promise<any> {
-        const contract = this.contractOf(step);
+    public async resolveInput({ step, memory, tenantId, userId }: ResolveInputParams): Promise<TupleResult<any>> {
+        const [contractError, contract] = this.contractOf(step);
+
+        if (contractError) return Err(contractError);
 
         const request: LLMRequest = {
             messages: [
@@ -61,22 +64,29 @@ export default class StepService {
             },
         };
 
-        const response = await this.llmGateway.chat(request);
-        const parsed = parseLLMContent(response.content, 'step input');
+        const [chatError, response] = await this.llmGateway.chat(request);
+
+        if (chatError) return Err(chatError);
+
+        const [parseError, parsed] = parseLLMContent(response.content, 'step input');
+
+        if (parseError) return Err(parseError);
 
         if (!parsed.input || typeof parsed.input !== 'object') {
-            throw new Error('llm did not return a step input');
+            return Err('llm did not return a step input');
         }
 
-        return parsed.input;
+        return Ok(parsed.input);
     }
 
-    public async interpretOutput({ step, output }: InterpretOutputParams): Promise<any> {
-        if (output === null || output === undefined) return null;
+    public async interpretOutput({ step, output }: InterpretOutputParams): Promise<TupleResult<any>> {
+        if (output === null || output === undefined) return Ok(null);
 
-        if (typeof output === 'object') return output;
+        if (typeof output === 'object') return Ok(output);
 
-        const contract = this.contractOf(step);
+        const [contractError, contract] = this.contractOf(step);
+
+        if (contractError) return Err(contractError);
 
         const rawOutput = typeof output === 'string' ? output : JSON.stringify(output);
 
@@ -103,21 +113,26 @@ export default class StepService {
             },
         };
 
-        const response = await this.llmGateway.chat(request);
-        const parsed = parseLLMContent(response.content, 'step output');
+        const [chatError, response] = await this.llmGateway.chat(request);
+
+        if (chatError) return Err(chatError);
+
+        const [parseError, parsed] = parseLLMContent(response.content, 'step output');
+
+        if (parseError) return Err(parseError);
 
         if (!parsed.facts || typeof parsed.facts !== 'object') {
-            throw new Error('llm did not return the step output facts');
+            return Err('llm did not return the step output facts');
         }
 
-        return parsed.facts;
+        return Ok(parsed.facts);
     }
 
-    private contractOf(step: Step) {
+    private contractOf(step: Step): TupleResult<typeof ModuleCapabilities[number]> {
         const contract = ModuleCapabilities.find(capability => capability.action === step.action);
 
-        if (!contract) throw new Error(`unknown action: ${step.action}`);
+        if (!contract) return Err(`unknown action: ${step.action}`);
 
-        return contract;
+        return Ok(contract);
     }
 }

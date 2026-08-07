@@ -44,12 +44,13 @@ describe('OpenRouterLLMGateway', () => {
             },
         });
 
-        const response = await new OpenRouterLLMGateway(config).chat({
+        const [error, response] = await new OpenRouterLLMGateway(config).chat({
             messages: [{ role: 'user', content: 'hi' }],
             temperature: 0.2,
             maxTokens: 500,
         });
 
+        assert.equal(error, null);
         assert.deepEqual(response, {
             content: '{"input":{}}',
             model: 'used-model',
@@ -101,21 +102,33 @@ describe('OpenRouterLLMGateway', () => {
         assert.equal(calls[0]!.init.headers['X-Title'], 'Worker');
     });
 
-    it('fails with the status and the body when the request is rejected', async () => {
+    it('returns the status and the body as a failure when the request is rejected', async () => {
         stubFetch({ ok: false, status: 401, text: 'no credits' });
 
-        await assert.rejects(
-            () => new OpenRouterLLMGateway(config).chat({ messages: [{ role: 'user', content: 'hi' }] }),
-            /OpenRouter error 401: no credits/,
-        );
+        const [error, response] = await new OpenRouterLLMGateway(config)
+            .chat({ messages: [{ role: 'user', content: 'hi' }] });
+
+        assert.match(error!.message, /OpenRouter error 401: no credits/);
+        assert.equal(response, null);
     });
 
-    it('fails when the answer has no content', async () => {
+    it('returns a failure when the answer has no content', async () => {
         stubFetch({ body: { choices: [] } });
 
-        await assert.rejects(
-            () => new OpenRouterLLMGateway(config).chat({ messages: [{ role: 'user', content: 'hi' }] }),
-            /returned no content/,
-        );
+        const [error, response] = await new OpenRouterLLMGateway(config)
+            .chat({ messages: [{ role: 'user', content: 'hi' }] });
+
+        assert.match(error!.message, /returned no content/);
+        assert.equal(response, null);
+    });
+
+    it('returns a failure when the transport itself fails', async () => {
+        globalThis.fetch = (async () => { throw new Error('network down') }) as unknown as typeof fetch;
+
+        const [error, response] = await new OpenRouterLLMGateway(config)
+            .chat({ messages: [{ role: 'user', content: 'hi' }] });
+
+        assert.match(error!.message, /network down/);
+        assert.equal(response, null);
     });
 });

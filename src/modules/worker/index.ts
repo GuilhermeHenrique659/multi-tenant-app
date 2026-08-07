@@ -14,3 +14,14 @@ export type RunWorkerRequest = {
     tenantId: string;
     workerId: string;
 }
+
+export type ListWorkersRequest = {
+    userId: string;
+    tenantId: string;
+}
+
+export type WorkerListItem = {
+    id: string;
+    name: string;
+    steps: { action: string; status: string }[];
+}

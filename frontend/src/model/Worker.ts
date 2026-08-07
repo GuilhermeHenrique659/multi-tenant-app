@@ -1,0 +1,41 @@
+import { z } from "zod";
+import { createStore } from "./common/Storage";
+import { ModelCollection } from "./common/Collection";
+
+const WorkerStepSchema = z.object({
+    action: z.string(),
+    status: z.string(),
+});
+
+const WorkerSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    steps: z.array(WorkerStepSchema),
+});
+
+type WorkerProps = z.infer<typeof WorkerSchema>;
+
+export type WorkerStep = z.infer<typeof WorkerStepSchema>;
+
+export type Worker = Readonly<{
+    props: Readonly<WorkerProps>;
+}>;
+
+type WorkerId = string;
+
+export type WorkerCollection = {
+    workers: ModelCollection<WorkerId, Worker>;
+};
+
+export const Create = (data: Record<string, unknown>): Worker => {
+    const props = WorkerSchema.parse(data);
+    return { props };
+};
+
+export const From = (data: unknown): Worker | null => {
+    const result = WorkerSchema.safeParse(data);
+    if (!result.success) return null;
+    return { props: result.data };
+};
+
+export const workersStore = createStore<WorkerCollection>({ workers: new ModelCollection(new Map()) });

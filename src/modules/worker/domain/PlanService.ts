@@ -1,3 +1,4 @@
+import { Err, Ok, TupleResult } from "../../@common/TupleResult.js";
 import LLMGateway, { LLMRequest } from "../gateway/LLMGateway.js";
 import { ModuleCapabilities } from "./ModuleCapabilities.js";
 import parseLLMContent from "./parseLLMContent.js";
@@ -53,7 +54,7 @@ const PLAN_SCHEMA = {
 export default class PlanService {
     constructor(private readonly llmGateway: LLMGateway) { }
 
-    public async create({ userPrompt, tenantId, userId }: CreatePlanParams): Promise<Plan> {
+    public async create({ userPrompt, tenantId, userId }: CreatePlanParams): Promise<TupleResult<Plan>> {
         const request: LLMRequest = {
             messages: [
                 { role: 'system', content: PLAN_INSTRUCTIONS },
@@ -69,32 +70,47 @@ export default class PlanService {
             jsonSchema: { name: 'worker_plan', schema: PLAN_SCHEMA },
         };
 
-        const response = await this.llmGateway.chat(request);
-        const parsed = parseLLMContent(response.content, 'worker plan');
+        const [chatError, response] = await this.llmGateway.chat(request);
+
+        if (chatError) return Err(chatError);
+
+        const [parseError, parsed] = parseLLMContent(response.content, 'worker plan');
+
+        if (parseError) return Err(parseError);
 
         if (!parsed.name || !parsed.type || !Array.isArray(parsed.steps)) {
-            throw new Error('llm did not return a valid worker plan');
+            return Err('llm did not return a valid worker plan');
         }
 
-        return {
-            name: parsed.name,
-            type: parsed.type,
-            steps: parsed.steps.map((step: any) => this.toPlannedStep(step)),
-        };
+        const steps: PlannedStep[] = [];
+
+        for (const step of parsed.steps) {
+            const [stepError, plannedStep] = this.toPlannedStep(step);
+
+            if (stepError) return Err(stepError);
+
+            steps.push(plannedStep);
+        }
+
+        return Ok({ name: parsed.name, type: parsed.type, steps });
     }
 
-    private toPlannedStep(step: any): PlannedStep {
-        const type = StepType.create(step.type);
-
+    private toPlannedStep(step: any): TupleResult<PlannedStep> {
         const isKnownAction = ModuleCapabilities.some(capability => capability.action === step.action);
 
-        if (type.isAction() && !isKnownAction) throw new Error(`unknown action: ${step.action}`);
+        try {
+            const type = StepType.create(step.type);
 
-        return {
-            action: step.action,
-            input: step.input,
-            order: Number(step.order),
-            type,
-        };
+            if (type.isAction() && !isKnownAction) return Err(`unknown action: ${step.action}`);
+
+            return Ok({
+                action: step.action,
+                input: step.input,
+                order: Number(step.order),
+                type,
+            });
+        } catch (err) {
+            return Err(err instanceof Error ? err : new Error('invalid planned step'));
+        }
     }
 }

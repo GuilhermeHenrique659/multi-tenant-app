@@ -1,3 +1,5 @@
+import { TupleResult } from "../../@common/TupleResult.js";
+
 export type LLMMessage = {
     role: 'system' | 'user' | 'assistant';
     content: string;
@@ -29,5 +31,6 @@ export type LLMResponse = {
 };
 
 export default interface LLMGateway {
-    chat(request: LLMRequest): Promise<LLMResponse>;
+    /** Never throws: a provider or transport failure comes back as `[error, null]`. */
+    chat(request: LLMRequest): Promise<TupleResult<LLMResponse>>;
 }

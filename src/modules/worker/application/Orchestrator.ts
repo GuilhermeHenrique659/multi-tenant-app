@@ -2,6 +2,7 @@ import AuthorizerApplicationService, { AuthorizedInput } from "../../@common/Aut
 import Mediator from "../../@common/Mediator.js";
 import StepService from "../domain/StepService.js";
 import WorkerMemory from "../domain/WorkerMemory.js";
+import Worker from "../domain/Worker.js";
 import WorkerCriteria from "../repository/WorkerCriteria.js";
 import WorkerRepository from "../repository/WorkerRepository.js";
 
@@ -22,14 +23,21 @@ export default class Orchestrator implements AuthorizerApplicationService<Input,
 
             if (!step) break;
 
-            if (!step.type.isAction()) throw new Error(`step type not supported yet: ${step.type.value}`);
+            if (!step.type.isAction()) {
+                return this._stop(worker, new Error(`step type not supported yet: ${step.type.value}`));
+            }
 
-            const stepInput = await this.stepService.resolveInput({
+            const [inputError, stepInput] = await this.stepService.resolveInput({
                 step,
                 memory,
                 tenantId: input.tenantId,
                 userId: input.userId,
             });
+
+            if (inputError) {
+                step.setAsError();
+                return this._stop(worker, inputError);
+            }
 
             let output: unknown;
             try {
@@ -37,16 +45,25 @@ export default class Orchestrator implements AuthorizerApplicationService<Input,
                 step.setAsComplete();
             } catch (err) {
                 step.setAsError();
-                await this.workerRepository.save(worker);
-                throw err;
+                return this._stop(worker, err instanceof Error ? err : new Error('step action failed'));
             }
 
-            const facts = await this.stepService.interpretOutput({ step, output });
+            // The action already ran, so the step stays complete even if the memory cannot be built.
+            const [factsError, facts] = await this.stepService.interpretOutput({ step, output });
+
+            if (factsError) return this._stop(worker, factsError);
 
             memory.record({ order: step.order, action: step.action, input: stepInput, output: facts });
         }
 
         await this.workerRepository.save(worker);
+    }
+
+    /** Persists what the steps reached before giving the failure back to the caller. */
+    private async _stop(worker: Worker, error: Error): Promise<never> {
+        await this.workerRepository.save(worker);
+
+        throw error;
     }
 }
 

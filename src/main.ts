@@ -14,6 +14,7 @@ import registerCapabilities from './modules/capabilities.js';
 import ProjectModule from './modules/project/project.module.js';
 import TenantModuleImpl from './modules/tenant/tenant.module.js';
 import WorkerModule, { WorkerModuleKey } from './modules/worker/worker.module.js';
+import { WorkerUserModuleKey } from './modules/worker/UserModule.js';
 import InMemoryQueue from './modules/worker/queue/InMemoryQueue.js';
 import OpenRouterLLMGateway from './modules/worker/gateway/OpenRouterLLMGateway.js';
 import loadOpenRouterConfig from './modules/worker/gateway/openRouterConfig.js';
@@ -46,13 +47,14 @@ async function main() {
     const userModule = new UserModuleImpl(db);
     container.register(ProjectUserModuleKey, userModule);
     container.register(TenantUserModuleKey, userModule);
+    container.register(WorkerUserModuleKey, userModule);
 
     const projectModule = new ProjectModule(db, userModule);
     const tenantModule = new TenantModuleImpl(db, mediator, userModule);
     await registerCapabilities(mediator, projectModule, tenantModule);
 
     const workerQueue = new InMemoryQueue();
-    const workerModule = new WorkerModule(db, new OpenRouterLLMGateway(loadOpenRouterConfig()), workerQueue, mediator);
+    const workerModule = new WorkerModule(db, new OpenRouterLLMGateway(loadOpenRouterConfig()), workerQueue, mediator, userModule);
     await workerModule.listen();
     container.register(WorkerModuleKey, workerModule);
 

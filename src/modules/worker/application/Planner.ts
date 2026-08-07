@@ -10,11 +10,13 @@ export default class Planner implements AuthorizerApplicationService<Input, Outp
     constructor(private readonly workerRepository: WorkerRepository, private readonly planService: PlanService, private readonly _queue: Queue) { }
 
     public async execute(input: Input): Promise<Output> {
-        const plan = await this.planService.create({
+        const [planError, plan] = await this.planService.create({
             userPrompt: input.userPrompt,
             tenantId: input.tenantId,
             userId: input.userId,
         });
+
+        if (planError) throw planError;
 
         const worker = Worker.create(input.tenantId, plan.name, WorkerType.create(plan.type), StepCollection.empty());
 

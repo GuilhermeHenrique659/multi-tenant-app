@@ -1,9 +1,9 @@
 import { useParams } from "react-router-dom";
 import ProjectsNavBar from "../components/ProjectsNavBar";
 import TaskList from "../components/TaskList";
+import WorkerNavBar from "../components/WorkerNavBar";
 import {
   useProject,
-  useProjectActions,
   useProjectStore,
 } from "../hook/useProjects";
 import FetchHttpClient from "../gateway/FetchHttpClient";
@@ -51,6 +51,7 @@ export default function Projects() {
           <p className="empty-state">Select a project to view tasks</p>
         </div>
       )}
+      {tenantId ? <WorkerNavBar tenantId={tenantId} /> : null}
     </div>
   );
 }
