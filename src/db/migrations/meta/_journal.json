@@ -43,6 +43,13 @@
       "when": 1784566933874,
       "tag": "0005_next_fabian_cortez",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786111292016,
+      "tag": "0006_abandoned_cloak",
+      "breakpoints": true
     }
   ]
 }

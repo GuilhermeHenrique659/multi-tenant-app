@@ -1,3 +1,5 @@
+const stepStatus = new Set(['pending', 'running', 'completed', 'failed']);
+
 export default class StepStatus {
     constructor(private status: string) { }
 
@@ -15,6 +17,12 @@ export default class StepStatus {
 
     static failed() {
         return new StepStatus("failed");
+    }
+
+    static create(status: string) {
+        if (!stepStatus.has(status)) throw new Error(`invalid step status: ${status}`);
+
+        return new StepStatus(status);
     }
 
     get value() {

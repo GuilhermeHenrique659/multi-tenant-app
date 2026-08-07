@@ -19,6 +19,7 @@ class Step extends Subject {
 
     constructor(private readonly props: StepProps) {
         super();
+        this.subscribe(this._event);
     }
 
     get action() {
@@ -33,6 +34,10 @@ class Step extends Subject {
         return this.props.id
     };
 
+    get workerId() {
+        return this.props.workerId
+    };
+
     get order() {
         return this.props.order
     };
@@ -45,6 +50,10 @@ class Step extends Subject {
         return this.props.type
     };
 
+    get changes() {
+        return this._event.changes;
+    }
+
     public setAsComplete() {
         this.props.status = StepStatus.completed();
         this.notify({ event: 'StatusChanged', data: this.props.status.value })
@@ -54,6 +63,30 @@ class Step extends Subject {
         this.props.status = StepStatus.failed();
         this.notify({ event: 'StatusChanged', data: this.props.status.value })
 
+    }
+
+    static create(workerId: string, action: string, input: any, order: number, type: StepType) {
+        return new Step({
+            id: Id.create(),
+            workerId: new Id(workerId),
+            action,
+            input,
+            order,
+            type,
+            status: StepStatus.pending(),
+        })
+    }
+
+    static restore(props: { id: string; workerId: string; action: string; input: any; order: number; type: string; status: string }) {
+        return new Step({
+            id: new Id(props.id),
+            workerId: new Id(props.workerId),
+            action: props.action,
+            input: props.input,
+            order: props.order,
+            type: StepType.create(props.type),
+            status: StepStatus.create(props.status),
+        })
     }
 }
 

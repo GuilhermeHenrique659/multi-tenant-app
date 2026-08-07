@@ -1,6 +1,6 @@
 enum Type {
-    ACTION,
-    ASK,
+    ACTION = "action",
+    ASK = "ask",
 }
 
 export default class StepType {
@@ -14,8 +14,23 @@ export default class StepType {
         return new StepType(Type.ASK);
     }
 
+    static create(type: string) {
+        const value = Object.values(Type).find(candidate => candidate === type.toLowerCase());
+
+        if (!value) throw new Error(`invalid step type: ${type}`);
+
+        return new StepType(value);
+    }
+
     get value() {
         return this.type;
     }
 
+    public isAction() {
+        return this.type === Type.ACTION;
+    }
+
+    public isAsk() {
+        return this.type === Type.ASK;
+    }
 }

@@ -9,6 +9,14 @@ import { AddMemberInput, CreateTenantInput } from './modules/tenant/index.js';
 import routers from './modules/router.js';
 import { Container } from './modules/@common/Container.js';
 import Logger from './modules/@common/Logger.js';
+import { requiredEnv } from './modules/@common/Env.js';
+import registerCapabilities from './modules/capabilities.js';
+import ProjectModule from './modules/project/project.module.js';
+import TenantModuleImpl from './modules/tenant/tenant.module.js';
+import WorkerModule, { WorkerModuleKey } from './modules/worker/worker.module.js';
+import InMemoryQueue from './modules/worker/queue/InMemoryQueue.js';
+import OpenRouterLLMGateway from './modules/worker/gateway/OpenRouterLLMGateway.js';
+import loadOpenRouterConfig from './modules/worker/gateway/openRouterConfig.js';
 import path from 'node:path';
 import { dirname } from 'path';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +28,7 @@ const CreateSuperAdmin = async () => {
     const userModule = new UserModuleImpl(db);
 
     try {
-        await userModule.createSuperUser({ name: process.env.SUPER_ADMIN_NAME!, email: process.env.SUPER_ADMIN_EMAIL! });
+        await userModule.createSuperUser({ name: requiredEnv('SUPER_ADMIN_NAME'), email: requiredEnv('SUPER_ADMIN_EMAIL') });
         console.log('Super admin user created successfully');
     } catch (error) {
         console.error('Failed to create super admin user:', (error as any).message);
@@ -38,6 +46,15 @@ async function main() {
     const userModule = new UserModuleImpl(db);
     container.register(ProjectUserModuleKey, userModule);
     container.register(TenantUserModuleKey, userModule);
+
+    const projectModule = new ProjectModule(db, userModule);
+    const tenantModule = new TenantModuleImpl(db, mediator, userModule);
+    await registerCapabilities(mediator, projectModule, tenantModule);
+
+    const workerQueue = new InMemoryQueue();
+    const workerModule = new WorkerModule(db, new OpenRouterLLMGateway(loadOpenRouterConfig()), workerQueue, mediator);
+    await workerModule.listen();
+    container.register(WorkerModuleKey, workerModule);
 
     mediator.register('checkInUser', async (input: any) => {
         return userModule.checkInUser(input);
