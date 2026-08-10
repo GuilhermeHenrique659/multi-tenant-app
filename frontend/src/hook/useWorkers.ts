@@ -1,4 +1,4 @@
-import { workersStore, type Worker, type WorkerCollection } from "../model/Worker";
+import { BuildWorkerIndex, workersStore, type Worker, type WorkerCollection } from "../model/Worker";
 import { ModelCollection } from "../model/common/Collection";
 import { ModelToMapFn } from "../util/ArrayUtil";
 import { sameItems, useModelStore } from "./common/useModelStore";
@@ -34,8 +34,10 @@ export const useWorker = (workerId: string) => {
 export const useWorkerActions = () => {
     return {
         setWorkers: (workers: Worker[]) => {
+            const collection = ModelCollection.from(workers, ModelToMapFn)
             workersStore.setState(() => ({
-                workers: ModelCollection.from(workers, ModelToMapFn)
+                workers: collection,
+                index: BuildWorkerIndex(collection)
             }));
         },
 
@@ -45,8 +47,12 @@ export const useWorkerActions = () => {
          * only the card reading this worker re-renders. Nothing changes when the
          * step already holds the status.
          */
-        patchStep: (workerId: string, order: number, status: string) => {
+        patchStep: (stepId: string, order: number, status: string) => {
             workersStore.setState(state => {
+                const workerId = state.index.FKStepId.get(stepId);
+
+                if (!workerId) return state;
+
                 const worker = state.workers.get(workerId);
 
                 if (!worker) return state;

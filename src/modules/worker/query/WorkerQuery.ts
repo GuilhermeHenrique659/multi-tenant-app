@@ -8,6 +8,7 @@ import StepType from "../domain/StepType.js";
 export type WorkerStepRow = {
     id: string;
     name: string;
+    stepId: string | null
     stepAction: string | null;
     stepStatus: string | null;
     stepOrder: number | null;
@@ -23,7 +24,8 @@ export function toWorkerList(rows: WorkerStepRow[]): WorkerListItem[] {
     for (const row of rows) {
         const worker = workers.get(row.id) ?? { id: row.id, name: row.name, steps: [] };
 
-        if (row.stepAction && row.stepType) worker.steps.push({
+        if (row.stepAction && row.stepType && row.stepId) worker.steps.push({
+            id: row.stepId,
             action: row.stepAction,
             type: row.stepType,
             input: StepType.isAsk(row.stepType) ? row.stepInput : null,
@@ -45,6 +47,7 @@ export default class WorkerQuery {
         const rows = await this._db.select({
             id: WorkerTable.id,
             name: WorkerTable.name,
+            stepId: WorkerStepTable.id,
             stepAction: WorkerStepTable.action,
             stepStatus: WorkerStepTable.status,
             stepOrder: WorkerStepTable.order,

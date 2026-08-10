@@ -8,6 +8,7 @@ const AskInputSchema = z.looseObject({
 });
 
 const WorkerStepSchema = z.object({
+    id: z.string(),
     action: z.string(),
     status: z.string(),
     order: z.number(),
@@ -33,6 +34,7 @@ export type Worker = Readonly<{
 type WorkerId = string;
 
 export type WorkerCollection = {
+    index: WorkerIndex,
     workers: ModelCollection<WorkerId, Worker>;
 };
 
@@ -54,4 +56,22 @@ export const FromList = (data: unknown): Array<Worker> => {
     return data.map(From).filter((worker): worker is Worker => !!worker);
 };
 
-export const workersStore = createStore<WorkerCollection>({ workers: new ModelCollection(new Map()) });
+
+
+export type WorkerIndex = {
+    FKStepId: Map<string, string>;
+};
+
+export const BuildWorkerIndex = (collection: WorkerCollection['workers']) => {
+    const FKStepId = collection.values().reduce((acc, crr) => {
+        crr.props.steps.forEach(step => acc.set(step.id, crr.props.id));
+
+        return acc;
+    }, new Map<string, string>());
+
+    return {
+        FKStepId,
+    }
+}
+
+export const workersStore = createStore<WorkerCollection>({ workers: new ModelCollection(new Map()), index: BuildWorkerIndex(new ModelCollection(new Map())) });

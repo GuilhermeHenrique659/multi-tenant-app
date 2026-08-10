@@ -26,7 +26,7 @@ export const WorkerEvents = (dependencies: StreamWorkersDependencies) => ({ publ
         .then(result => setWorkers(result.unwrapOr([])));
 
 
-    const onStepUpdated = (event: WorkerStepEvent) => updateStep(event.workerId, event.order, event.status);
+    const onStepUpdated = (event: WorkerStepEvent) => updateStep(event.stepId, event.order, event.status);
     publisher.sub('StepStarted', onStepUpdated);
     publisher.sub('StepCompleted', onStepUpdated);
     publisher.sub('StepFailed', onStepUpdated);

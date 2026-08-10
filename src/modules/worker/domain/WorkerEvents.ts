@@ -4,13 +4,14 @@ export const WorkerResumed = 'WorkerResumed';
 export const StepStarted = 'StepStarted';
 export const StepCompleted = 'StepCompleted';
 export const StepFailed = 'StepFailed';
+export const StepAsked = 'StepAsked';
 export const WorkerFinished = 'WorkerFinished';
 
 /** Names of every event that comes with a new plan, so the list has to be read again. */
 export const WorkerPlanEvents = [WorkerCreated, WorkerResumed];
 
 /** Names of every event that carries a step status change. */
-export const StepEvents = [StepStarted, StepCompleted, StepFailed];
+export const StepEvents = [StepStarted, StepCompleted, StepFailed, StepAsked];
 
 export type StepEventData = {
     workerId: string;

@@ -10,6 +10,7 @@ type StepProps = {
     action: string;
     input: any;
     order: number;
+    answer?: string;
     type: StepType;
     status: StepStatus;
     error?: string | undefined;
@@ -39,6 +40,10 @@ class Step extends Subject {
         return this.props.workerId
     };
 
+    get answer() {
+        return this.props.answer;
+    }
+
     get order() {
         return this.props.order
     };
@@ -58,6 +63,14 @@ class Step extends Subject {
 
     get changes() {
         return this._event.changes;
+    }
+
+    public isAsk() {
+        return this.type.isAsk();
+    }
+
+    public isAction() {
+        return this.type.isAction();
     }
 
     public setAsRunning() {

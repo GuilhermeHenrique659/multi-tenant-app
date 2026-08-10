@@ -5,7 +5,7 @@ import StepService from "../domain/StepService.js";
 import Step from "../domain/Step.js";
 import WorkerMemory from "../domain/WorkerMemory.js";
 import Worker from "../domain/Worker.js";
-import { StepCompleted, StepEventData, StepFailed, StepStarted, WorkerFinished } from "../domain/WorkerEvents.js";
+import { StepAsked, StepCompleted, StepEventData, StepFailed, StepStarted, WorkerFinished } from "../domain/WorkerEvents.js";
 import { Queue } from "../../@common/queue/Queue.js";
 import WorkerCriteria from "../repository/WorkerCriteria.js";
 import WorkerRepository from "../repository/WorkerRepository.js";
@@ -28,27 +28,30 @@ export default class Orchestrator implements AuthorizerApplicationService<Input,
         const memory = WorkerMemory.empty();
 
         while (!worker.isDone()) {
-            await this._executeStep(input, worker, memory)
+            const step = worker.nextStep();
+
+            if (!step) break;
+
+            if (step.isAsk()) {
+                await this._publishStep(worker, step, StepAsked);
+
+                break;
+            } else if (step.isAction()) {
+                // Saved before the event so whoever reloads the screen also sees the step running.
+                step.setAsRunning();
+                await this.workerRepository.save(worker);
+                await this._publishStep(worker, step, StepStarted);
+
+                await this._executeActionStep(input, step, worker, memory)
+            }
         }
 
         await this.workerRepository.save(worker);
-        await this._queue.publish({ eventName: WorkerFinished, data: { workerId: worker.id, tenantId: worker.tenantId } });
+
+        if (worker.isDone()) await this._queue.publish({ eventName: WorkerFinished, data: { workerId: worker.id, tenantId: worker.tenantId } });
     }
 
-    private async _executeStep(input: Input, worker: Worker, memory: WorkerMemory) {
-        const step = worker.nextStep();
-
-        if (!step) return;
-
-        if (!step.type.isAction()) {
-            return this._stop(worker, new Error(`step type not supported yet: ${step.type.value}`));
-        }
-
-        // Saved before the event so whoever reloads the screen also sees the step running.
-        step.setAsRunning();
-        await this.workerRepository.save(worker);
-        await this._publishStep(worker, step, StepStarted);
-
+    private async _executeActionStep(input: Input, step: Step, worker: Worker, memory: WorkerMemory) {
         const [inputError, stepInput] = await this.stepService.resolveInput({
             step,
             memory,

@@ -6,6 +6,7 @@ export const WorkerStepTable = pgTable("worker_steps", {
     workerId: varchar("worker_id").notNull().references(() => WorkerTable.id),
     action: varchar("action").notNull(),
     input: jsonb("input").notNull(),
+    answer: varchar("answer"),
     order: integer("step_order").notNull(),
     type: varchar("type").notNull(),
     status: varchar("status").notNull(),
