@@ -2,10 +2,18 @@ import { z } from "zod";
 import { createStore } from "./common/Storage";
 import { ModelCollection } from "./common/Collection";
 
+/** The input only comes for a step of type `ask`, so it is optional here. */
+const AskInputSchema = z.looseObject({
+    question: z.string().optional(),
+});
+
 const WorkerStepSchema = z.object({
     action: z.string(),
     status: z.string(),
     order: z.number(),
+    type: z.string(),
+    input: AskInputSchema.nullable().default(null),
+    error: z.string().nullable().default(null),
 });
 
 const WorkerSchema = z.object({

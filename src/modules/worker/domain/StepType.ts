@@ -22,6 +22,10 @@ export default class StepType {
         return new StepType(value);
     }
 
+    static isAsk(type: string) {
+        return Type.ASK === type;
+    }
+
     get value() {
         return this.type;
     }

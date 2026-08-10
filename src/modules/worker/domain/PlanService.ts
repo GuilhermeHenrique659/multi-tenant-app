@@ -23,11 +23,17 @@ type Plan = {
     steps: PlannedStep[];
 };
 
+const ASK_INSTRUCTION = [
+    'A step of type "ask" always carries the question in its input, under the key `question`, as a string:',
+    '{ "question": "..." }, written for the user to read and answer in free text.',
+].join(' ');
+
 const PLAN_INSTRUCTIONS = [
     'You break a user request into an ordered plan of steps.',
     'Use only the actions listed in `capabilities`; each step must reference one of them.',
     'The `input` json schema of the chosen capability defines the fields of the step input.',
     'A step of type "action" is executed by the system, a step of type "ask" asks the user for missing data.',
+    ASK_INSTRUCTION,
     'When a step needs a value produced by a previous step, describe where it comes from in its input;',
     'the concrete value is resolved at execution time, so a placeholder is expected.',
     '`order` starts at 1 and increases by 1.',
@@ -47,6 +53,7 @@ const RESUME_INSTRUCTIONS = [
     'You may create as many steps as needed, replacing every step that is not completed.',
     'Use only the actions listed in `capabilities`; each step must reference one of them.',
     'The `input` json schema of the chosen capability defines the fields of the step input.',
+    ASK_INSTRUCTION,
     'When a step needs a value produced by a previous step, describe where it comes from in its input;',
     'the concrete value is resolved at execution time, so a placeholder is expected.',
     '`order` starts at 1 and increases by 1.',

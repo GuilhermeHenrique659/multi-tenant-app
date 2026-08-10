@@ -816,6 +816,12 @@ select.form-input {
   font-size: 12px;
   color: var(--text);
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.worker-step-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -852,4 +858,35 @@ select.form-input {
 .worker-step-status--failed {
   background: #fef2f2;
   color: #ef4444;
+}
+
+/* The question a pending `ask` step waits on, right under the step itself. */
+.worker-step-ask {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  background: var(--code-bg);
+}
+
+.worker-step-question {
+  margin: 0;
+  align-self: stretch;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.worker-step-answer {
+  align-self: stretch;
+  resize: vertical;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px;
 }

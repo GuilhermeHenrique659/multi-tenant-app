@@ -3,6 +3,7 @@ import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { WorkerStepTable } from "../db/WorkerStepTable.js";
 import { WorkerTable } from "../db/WorkerTable.js";
 import { WorkerListItem } from "../index.js";
+import StepType from "../domain/StepType.js";
 
 export type WorkerStepRow = {
     id: string;
@@ -10,6 +11,9 @@ export type WorkerStepRow = {
     stepAction: string | null;
     stepStatus: string | null;
     stepOrder: number | null;
+    stepType: string | null;
+    stepInput: unknown | null,
+    stepError: string | null,
 };
 
 /** One row per step, so the rows of a worker are folded into a single item. */
@@ -19,7 +23,14 @@ export function toWorkerList(rows: WorkerStepRow[]): WorkerListItem[] {
     for (const row of rows) {
         const worker = workers.get(row.id) ?? { id: row.id, name: row.name, steps: [] };
 
-        if (row.stepAction) worker.steps.push({ action: row.stepAction, status: row.stepStatus ?? 'pending', order: row.stepOrder ?? 0 });
+        if (row.stepAction && row.stepType) worker.steps.push({
+            action: row.stepAction,
+            type: row.stepType,
+            input: StepType.isAsk(row.stepType) ? row.stepInput : null,
+            error: row.stepError,
+            status: row.stepStatus ?? 'pending',
+            order: row.stepOrder ?? 0,
+        });
 
         workers.set(row.id, worker);
     }
@@ -37,6 +48,9 @@ export default class WorkerQuery {
             stepAction: WorkerStepTable.action,
             stepStatus: WorkerStepTable.status,
             stepOrder: WorkerStepTable.order,
+            stepInput: WorkerStepTable.input,
+            stepType: WorkerStepTable.type,
+            stepError: WorkerStepTable.error,
         })
             .from(WorkerTable)
             .leftJoin(WorkerStepTable, eq(WorkerStepTable.workerId, WorkerTable.id))

@@ -1,5 +1,4 @@
 import AuthorizerApplicationService, { AuthorizedInput } from "../../@common/AuthorizerApplicationService.js";
-import elapsedSince from "../../@common/elapsedSince.js";
 import Logger from "../../@common/Logger.js";
 import PlanService from "../domain/PlanService.js";
 import StepCollection from "../domain/StepCollection.js";
@@ -13,8 +12,6 @@ export default class Planner implements AuthorizerApplicationService<Input, Outp
     constructor(private readonly workerRepository: WorkerRepository, private readonly planService: PlanService, private readonly _queue: Queue) { }
 
     public async execute(input: Input): Promise<Output> {
-        const startedAt = performance.now();
-
         const [planError, plan] = await this.planService.create({
             userPrompt: input.userPrompt,
             tenantId: input.tenantId,
@@ -22,12 +19,12 @@ export default class Planner implements AuthorizerApplicationService<Input, Outp
         });
 
         if (planError) {
-            Logger.error(`Planning failed after ${elapsedSince(startedAt)}ms: ${planError.message}`);
+            Logger.error(`Planning failed: ${planError.message}`);
 
             throw planError;
         }
 
-        Logger.info(`Planned "${plan.name}" with ${plan.steps.length} steps in ${elapsedSince(startedAt)}ms`);
+        Logger.info(`Planned "${plan.name}" with ${plan.steps.length} steps`);
 
         const worker = Worker.create(input.tenantId, plan.name, input.userPrompt, WorkerType.create(plan.type), StepCollection.empty());
 

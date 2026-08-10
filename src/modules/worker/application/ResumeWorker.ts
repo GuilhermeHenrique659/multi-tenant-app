@@ -1,5 +1,4 @@
 import AuthorizerApplicationService, { AuthorizedInput } from "../../@common/AuthorizerApplicationService.js";
-import elapsedSince from "../../@common/elapsedSince.js";
 import Logger from "../../@common/Logger.js";
 import { Queue } from "../../@common/queue/Queue.js";
 import PlanService from "../domain/PlanService.js";
@@ -28,8 +27,6 @@ export default class ResumeWorker implements AuthorizerApplicationService<Input,
 
         if (worker.isDone()) throw new Error('worker is already done');
 
-        const startedAt = performance.now();
-
         const [planError, steps] = await this.planService.replan({
             worker,
             tenantId: input.tenantId,
@@ -37,12 +34,12 @@ export default class ResumeWorker implements AuthorizerApplicationService<Input,
         });
 
         if (planError) {
-            Logger.error(`Worker ${worker.id}: replanning failed after ${elapsedSince(startedAt)}ms: ${planError.message}`);
+            Logger.error(`Worker ${worker.id}: replanning failed: ${planError.message}`);
 
             throw planError;
         }
 
-        Logger.info(`Worker ${worker.id}: replanned with ${steps.length} steps in ${elapsedSince(startedAt)}ms`);
+        Logger.info(`Worker ${worker.id}: replanned with ${steps.length} steps`);
 
         worker.replan(steps);
 

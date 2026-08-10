@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Project } from "../model/Project";
-import { useProjectActions } from "../hook/useProjects";
-import FetchHttpClient from "../gateway/FetchHttpClient";
-import ProjectHttpGateway from "../gateway/project/ProjectHttpGateway";
-import { CreateProject } from "../application/project/CreateProject";
-import { unwrapOrElse } from "../util/Result";
+import type { Project } from "../../model/Project";
+import { useProjectActions } from "../../hook/useProjects";
+import FetchHttpClient from "../../gateway/FetchHttpClient";
+import ProjectHttpGateway from "../../gateway/project/ProjectHttpGateway";
+import { CreateProject } from "../../application/project/CreateProject";
+import { unwrapOrElse } from "../../util/Result";
+import Button from "../atoms/Button";
+import Input from "../atoms/Input";
+import StatusDot from "../atoms/StatusDot";
 
 type ProjectsNavBarProps = {
   tenantId: string;
@@ -40,19 +43,18 @@ export default function ProjectsNavBar({ tenantId, projects, selectedProjectId, 
 
   return (
     <aside className="projects-sidebar">
-      <button className="btn btn--small" onClick={() => navigate('/')} style={{ alignSelf: 'flex-start' }}>Home</button>
+      <Button size="small" onClick={() => navigate('/')} style={{ alignSelf: 'flex-start' }}>Home</Button>
       <div className="projects-sidebar-header">
         <h2>Projects</h2>
       </div>
       <form className="projects-form" onSubmit={handleAddProject}>
-        <input
-          className="form-input"
+        <Input
           type="text"
           placeholder="New project name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <button className="btn btn--primary btn--small" type="submit">Add</button>
+        <Button variant="primary" size="small" type="submit">Add</Button>
       </form>
       <nav className="projects-nav">
         {projects.map((project) => (
@@ -61,7 +63,7 @@ export default function ProjectsNavBar({ tenantId, projects, selectedProjectId, 
             className={`projects-nav-item${selectedProjectId === project.props.id ? ' projects-nav-item--active' : ''}`}
             onClick={() => onSelectProject(project.props.id)}
           >
-            <span className={`project-status project-status--${project.props.status === 'active' ? 'active' : 'closed'}`} />
+            <StatusDot tone={project.props.status === 'active' ? 'active' : 'closed'} />
             <span className="projects-nav-name">{project.props.name}</span>
           </button>
         ))}

@@ -1,7 +1,8 @@
 import { useParams } from "react-router-dom";
-import ProjectsNavBar from "../components/ProjectsNavBar";
-import TaskList from "../components/TaskList";
-import WorkerNavBar from "../components/WorkerNavBar";
+import ProjectsNavBar from "../components/organisms/ProjectsNavBar";
+import TaskList from "../components/organisms/TaskList";
+import WorkerNavBar from "../components/organisms/WorkerNavBar";
+import EmptyState from "../components/atoms/EmptyState";
 import {
   useProject,
   useProjectStore,
@@ -48,7 +49,7 @@ export default function Projects() {
         <TaskList tenantId={tenantId} project={selectedProject} />
       ) : (
         <div className="projects-content">
-          <p className="empty-state">Select a project to view tasks</p>
+          <EmptyState>Select a project to view tasks</EmptyState>
         </div>
       )}
       {tenantId ? <WorkerNavBar tenantId={tenantId} /> : null}

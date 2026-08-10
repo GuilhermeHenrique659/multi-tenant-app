@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
-import { useTaskStore } from "../hook/useProjects";
-import type { Project } from "../model/Project";
-import { ListTasks } from "../application/project/ListTasks";
-import FetchHttpClient from "../gateway/FetchHttpClient";
-import ProjectHttpGateway from "../gateway/project/ProjectHttpGateway";
-import { tasksStore } from "../model/Task";
-import { ModelCollection } from "../model/common/Collection";
-import { ModelToMapFn } from "../util/ArrayUtil";
+import { useTaskStore } from "../../hook/useProjects";
+import type { Project } from "../../model/Project";
+import { ListTasks } from "../../application/project/ListTasks";
+import FetchHttpClient from "../../gateway/FetchHttpClient";
+import ProjectHttpGateway from "../../gateway/project/ProjectHttpGateway";
+import { tasksStore } from "../../model/Task";
+import { ModelCollection } from "../../model/common/Collection";
+import { ModelToMapFn } from "../../util/ArrayUtil";
+import Badge from "../atoms/Badge";
+import Button from "../atoms/Button";
+import EmptyState from "../atoms/EmptyState";
+import TaskCard from "../molecules/TaskCard";
 import TaskModal from "./TaskModal";
 
 type TaskListProps = {
@@ -34,30 +38,21 @@ export default function TaskList({ tenantId, project }: Readonly<TaskListProps>)
     <div className="projects-content">
       <div className="projects-content-header">
         <h2>{project.props.name}</h2>
-        <span
-          className={`project-status-label project-status-label--${project.props.status === "active" ? "active" : "closed"}`}
-        >
+        <Badge kind="project" tone={project.props.status === "active" ? "active" : "closed"}>
           {project.props.status}
-        </span>
+        </Badge>
       </div>
       <div className="task-section">
         <div className="task-section-header">
           <h3>Tasks</h3>
-          <button className="btn btn--primary btn--small" onClick={() => setIsCreatingTask(true)}>Add Task</button>
+          <Button variant="primary" size="small" onClick={() => setIsCreatingTask(true)}>Add Task</Button>
         </div>
         <div className="task-list">
           {taskCollection.tasks.values().length === 0 ? (
-            <p className="empty-state">No task yet</p>
+            <EmptyState>No task yet</EmptyState>
           ) : (
             taskCollection.tasks.values().map((task) => (
-              <div key={task.props.id} className="task-card" onClick={() => setEditTaskId(task.props.id)}>
-                <div className="task-card-header">
-                  <span className="task-name">{task.props.name}</span>
-                  <span className={`task-status task-status--${task.props.status}`}>
-                    {task.props.status}
-                  </span>
-                </div>
-              </div>
+              <TaskCard key={task.props.id} task={task} onClick={() => setEditTaskId(task.props.id)} />
             ))
           )}
         </div>

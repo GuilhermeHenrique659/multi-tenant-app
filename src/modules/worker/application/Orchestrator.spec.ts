@@ -8,6 +8,7 @@ import StepCollection from '../domain/StepCollection.js';
 import Worker from '../domain/Worker.js';
 import WorkerType from '../domain/WorkerType.js';
 import FakeWorkerRepository from '../repository/FakeWorkerRepository.js';
+import InMemoryQueue from '../../@common/queue/InMemoryQueue.js';
 import Orchestrator from './Orchestrator.js';
 
 describe('Orchestrator', () => {
@@ -46,7 +47,7 @@ describe('Orchestrator', () => {
             return { taskId: 'task-1' };
         });
 
-        await new Orchestrator(repository, new StepService(gateway), mediator).execute({
+        await new Orchestrator(repository, new StepService(gateway), mediator, new InMemoryQueue()).execute({
             workerId: worker.id,
             tenantId: 'tenant-1',
             userId: 'user-1',
@@ -74,7 +75,7 @@ describe('Orchestrator', () => {
         const mediator = new Mediator();
         mediator.register('createProject', async () => { throw new Error('project name already taken') });
 
-        const orchestrator = new Orchestrator(repository, new StepService(gateway), mediator);
+        const orchestrator = new Orchestrator(repository, new StepService(gateway), mediator, new InMemoryQueue());
 
         await assert.rejects(() => orchestrator.execute({
             workerId: worker.id,
@@ -95,7 +96,7 @@ describe('Orchestrator', () => {
 
         const gateway = new FakeLLMGateway([new Error('OpenRouter error 429: rate limited')]);
 
-        const orchestrator = new Orchestrator(repository, new StepService(gateway), new Mediator());
+        const orchestrator = new Orchestrator(repository, new StepService(gateway), new Mediator(), new InMemoryQueue());
 
         await assert.rejects(() => orchestrator.execute({
             workerId: worker.id,
@@ -122,7 +123,7 @@ describe('Orchestrator', () => {
         const mediator = new Mediator();
         mediator.register('createProject', async () => 'project project-1 created');
 
-        const orchestrator = new Orchestrator(repository, new StepService(gateway), mediator);
+        const orchestrator = new Orchestrator(repository, new StepService(gateway), mediator, new InMemoryQueue());
 
         await assert.rejects(() => orchestrator.execute({
             workerId: worker.id,
@@ -138,7 +139,7 @@ describe('Orchestrator', () => {
     });
 
     it('rejects a worker that does not exist', async () => {
-        const orchestrator = new Orchestrator(repository, new StepService(new FakeLLMGateway([])), new Mediator());
+        const orchestrator = new Orchestrator(repository, new StepService(new FakeLLMGateway([])), new Mediator(), new InMemoryQueue());
 
         await assert.rejects(() => orchestrator.execute({
             workerId: 'missing',
@@ -151,7 +152,7 @@ describe('Orchestrator', () => {
         const worker = createWorker();
         await repository.save(worker);
 
-        const orchestrator = new Orchestrator(repository, new StepService(new FakeLLMGateway([])), new Mediator());
+        const orchestrator = new Orchestrator(repository, new StepService(new FakeLLMGateway([])), new Mediator(), new InMemoryQueue());
 
         await assert.rejects(() => orchestrator.execute({
             workerId: worker.id,
@@ -166,7 +167,7 @@ describe('Orchestrator', () => {
         ]);
         await repository.save(worker);
 
-        const orchestrator = new Orchestrator(repository, new StepService(new FakeLLMGateway([])), new Mediator());
+        const orchestrator = new Orchestrator(repository, new StepService(new FakeLLMGateway([])), new Mediator(), new InMemoryQueue());
 
         await assert.rejects(() => orchestrator.execute({
             workerId: worker.id,

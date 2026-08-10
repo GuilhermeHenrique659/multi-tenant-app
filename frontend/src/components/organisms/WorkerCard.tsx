@@ -1,5 +1,7 @@
 import { memo, useState } from "react";
-import { useWorker } from "../hook/useWorkers";
+import { useWorker } from "../../hook/useWorkers";
+import Button from "../atoms/Button";
+import WorkerStep from "../molecules/WorkerStep";
 
 type WorkerCardProps = {
   workerId: string;
@@ -37,24 +39,14 @@ function WorkerCard({ workerId, isResuming, canResume, onResume }: Readonly<Work
       {showSteps ? (
         <ol className="worker-step-list">
           {worker.props.steps.map((step) => (
-            <li className="worker-step" key={`${workerId}-${step.order}`}>
-              <span className="worker-step-action">{step.action}</span>
-              <span className={`worker-step-status worker-step-status--${step.status}`}>
-                {step.status}
-              </span>
-            </li>
+            <WorkerStep key={`${workerId}-${step.order}`} step={step} />
           ))}
         </ol>
       ) : null}
       {hasFailed ? (
-        <button
-          className="btn btn--small"
-          type="button"
-          onClick={() => onResume(workerId)}
-          disabled={!canResume}
-        >
+        <Button size="small" onClick={() => onResume(workerId)} disabled={!canResume}>
           {isResuming ? "Resuming..." : "Resume"}
-        </button>
+        </Button>
       ) : null}
     </article>
   );

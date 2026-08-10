@@ -29,5 +29,5 @@ export type ListWorkersRequest = {
 export type WorkerListItem = {
     id: string;
     name: string;
-    steps: { action: string; status: string; order: number }[];
+    steps: { action: string; status: string; order: number; input: unknown | null, type: string, error: string | null }[];
 }
