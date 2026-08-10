@@ -481,10 +481,14 @@ select.form-input {
 }
 
 /* Projects page */
+/**
+ * The viewport height is fixed here so each column scrolls on its own instead of
+ * growing the page.
+ */
 .projects-page {
   display: flex;
-  height: 100%;
-  min-height: calc(100svh - 2px);
+  height: 100svh;
+  overflow: hidden;
 }
 
 .projects-sidebar {
@@ -496,6 +500,7 @@ select.form-input {
   padding: 20px;
   gap: 12px;
   box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .projects-sidebar-header {
@@ -715,7 +720,7 @@ select.form-input {
   gap: 12px;
   box-sizing: border-box;
   text-align: left;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .worker-sidebar-header h2 {
@@ -751,10 +756,18 @@ select.form-input {
   background: var(--bg);
 }
 
+/**
+ * Takes the height left by the header and the form, which stay in place, and is
+ * the only part that scrolls. `min-height: 0` is what lets a flex item shrink
+ * below its content and scroll.
+ */
 .worker-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .worker-card {
@@ -763,9 +776,32 @@ select.form-input {
   padding: 10px 12px;
 }
 
+.worker-card-header {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 6px;
+}
+
+/* Points right when the steps are hidden and down when they are shown. */
+.worker-card-chevron {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text);
+  transition: transform 0.15s;
+}
+
+.worker-card-chevron--open {
+  transform: rotate(90deg);
+}
+
 .worker-card-name {
   font-size: 14px;
-  margin: 0 0 6px;
+  margin: 0;
 }
 
 .worker-step-list {

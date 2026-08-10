@@ -1,13 +1,11 @@
-import { useSyncExternalStore } from "react";
 import { tenantsStore, type Tenant, type TenantCollection } from "../model/Tenant";
+import { useModelStore } from "./common/useModelStore";
 
 export const useTenantStore = <T>(
-    selector: (state: TenantCollection) => T
+    selector: (state: TenantCollection) => T,
+    isEqual?: (previous: T, next: T) => boolean
 ) => {
-    return useSyncExternalStore(
-        tenantsStore.subscribe,
-        () => selector(tenantsStore.getState())
-    );
+    return useModelStore(tenantsStore, selector, isEqual);
 }
 
 export const useTenants = () => {

@@ -9,12 +9,12 @@ import { ModelCollection } from "../model/common/Collection";
 import { ModelToMapFn } from "../util/ArrayUtil";
 import TaskModal from "./TaskModal";
 
-interface TaskListProps {
+type TaskListProps = {
   tenantId: string;
   project: Project;
 }
 
-export default function TaskList({ tenantId, project }: TaskListProps) {
+export default function TaskList({ tenantId, project }: Readonly<TaskListProps>) {
   const taskCollection = useTaskStore((s) => s);
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);

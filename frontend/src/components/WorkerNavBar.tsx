@@ -1,18 +1,20 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import FetchHttpClient from "../gateway/FetchHttpClient";
 import WorkerHttpGateway from "../gateway/worker/WorkerHttpGateway";
 import { PlanWorker } from "../application/worker/PlanWorker";
 import { ResumeWorker } from "../application/worker/ResumeWorker";
-import { StreamWorkers } from "../application/worker/StreamWorkers";
-import { useWorkerActions, useWorkers } from "../hook/useWorkers";
+import { WorkerEvents } from "../application/worker/WorkerEvents";
+import { useWorkerActions, useWorkerIds } from "../hook/useWorkers";
 import { unwrapOrElse } from "../util/Result";
+import WorkerCard from "./WorkerCard";
+import { Publisher } from "../application/pub/Publisher";
 
-interface WorkerNavBarProps {
+type WorkerNavBarProps = {
   tenantId: string;
 }
 
-export default function WorkerNavBar({ tenantId }: WorkerNavBarProps) {
-  const workers = useWorkers().values();
+export default function WorkerNavBar({ tenantId }: Readonly<WorkerNavBarProps>) {
+  const workerIds = useWorkerIds();
   const workerActions = useWorkerActions();
   const [userPrompt, setUserPrompt] = useState("");
   const [isPlanning, setIsPlanning] = useState(false);
@@ -20,20 +22,23 @@ export default function WorkerNavBar({ tenantId }: WorkerNavBarProps) {
 
   const workerGateway = new WorkerHttpGateway(new FetchHttpClient());
 
+  const publisher = Publisher();
+
   /** The stream sends the current state on open and every step change after it. */
   useEffect(() => {
-    const close = StreamWorkers({
+    const close = WorkerEvents({
       workerGateway: new WorkerHttpGateway(new FetchHttpClient()),
     })({
       tenantId,
+      publisher,
+      updateStep: workerActions.patchStep,
       setWorkers: workerActions.setWorkers,
-      patchStep: workerActions.patchStep,
     });
 
     return close;
   }, [tenantId]);
 
-  const handlePlan = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handlePlan = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!userPrompt.trim() || isPlanning) return;
 
@@ -49,17 +54,22 @@ export default function WorkerNavBar({ tenantId }: WorkerNavBarProps) {
     if (created) setUserPrompt("");
   };
 
-  const handleResume = async (workerId: string) => {
-    if (resumingId) return;
+  /** Stable while nothing is resuming, so typing does not re-render the cards. */
+  const handleResume = useCallback(
+    async (workerId: string) => {
+      if (resumingId) return;
 
-    setResumingId(workerId);
+      setResumingId(workerId);
 
-    await ResumeWorker({ workerGateway })({ tenantId, workerId }).then(
-      unwrapOrElse(alert),
-    );
+      await ResumeWorker({ workerGateway: new WorkerHttpGateway(new FetchHttpClient()) })({
+        tenantId,
+        workerId,
+      }).then(unwrapOrElse(alert));
 
-    setResumingId(null);
-  };
+      setResumingId(null);
+    },
+    [tenantId, resumingId],
+  );
 
   return (
     <aside className="worker-sidebar">
@@ -95,40 +105,18 @@ export default function WorkerNavBar({ tenantId }: WorkerNavBarProps) {
       </form>
 
       <div className="worker-list">
-        {workers.length === 0 ? (
+        {workerIds.length === 0 ? (
           <p className="empty-state">No worker yet</p>
         ) : (
-          workers.map((worker) => {
-            const hasFailed = worker.props.steps.some(
-              (step) => step.status === "failed",
-            );
-
-            return (
-              <article className="worker-card" key={worker.props.id}>
-                <h3 className="worker-card-name">{worker.props.name}</h3>
-                <ol className="worker-step-list">
-                  {worker.props.steps.map((step) => (
-                    <li className="worker-step" key={`${worker.props.id}-${step.order}`}>
-                      <span className="worker-step-action">{step.action}</span>
-                      <span className={`worker-step-status worker-step-status--${step.status}`}>
-                        {step.status}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-                {hasFailed ? (
-                  <button
-                    className="btn btn--small"
-                    type="button"
-                    onClick={() => handleResume(worker.props.id)}
-                    disabled={resumingId !== null}
-                  >
-                    {resumingId === worker.props.id ? "Resuming..." : "Resume"}
-                  </button>
-                ) : null}
-              </article>
-            );
-          })
+          workerIds.map((workerId) => (
+            <WorkerCard
+              key={workerId}
+              workerId={workerId}
+              isResuming={resumingId === workerId}
+              canResume={resumingId === null}
+              onResume={handleResume}
+            />
+          ))
         )}
       </div>
     </aside>

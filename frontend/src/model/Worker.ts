@@ -39,4 +39,11 @@ export const From = (data: unknown): Worker | null => {
     return { props: result.data };
 };
 
+/** Whatever does not parse is dropped, so a bad item does not lose the list. */
+export const FromList = (data: unknown): Array<Worker> => {
+    if (!Array.isArray(data)) return [];
+
+    return data.map(From).filter((worker): worker is Worker => !!worker);
+};
+
 export const workersStore = createStore<WorkerCollection>({ workers: new ModelCollection(new Map()) });

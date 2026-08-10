@@ -2,14 +2,9 @@ import { From as WorkerFrom, type Worker } from "../../model/Worker";
 import type HttpClient from "../HttpClient";
 import { currentUser } from "../currentUser";
 import type WorkerGateway from "./WorkerGateway";
-import type { CloseStream, WorkerStepEvent, WorkerStreamHandlers } from "./WorkerGateway";
+import type { CloseStream } from "./WorkerGateway";
 import { Result } from "../../util/Result";
-
-/** The events the backend publishes for every status a step reaches. */
-const STEP_EVENTS = ['StepStarted', 'StepCompleted', 'StepFailed'];
-
-/** The events that mean a worker got a new plan, so the list changed. */
-const PLAN_EVENTS = ['WorkerCreated', 'WorkerResumed'];
+import type { PublisherType } from "../../application/pub/Publisher";
 
 export default class WorkerHttpGateway implements WorkerGateway {
     private readonly _httpClient: HttpClient
@@ -51,29 +46,18 @@ export default class WorkerHttpGateway implements WorkerGateway {
 
     /**
      * `EventSource` cannot send headers, so who is asking goes on the query
-     * string. It does not go through the `HttpClient` for the same reason.
+     * string. It does not go through the `HttpClient` for the same reason. Every
+     * event comes with a name, and SSE only delivers a named event to a listener
+     * of that name: `onmessage` only sees the ones without a name.
      */
-    public streamEvents(tenantId: string, handlers: WorkerStreamHandlers): CloseStream {
+    public streamEvents(tenantId: string, publisher: PublisherType): CloseStream {
         const user = currentUser();
         const params = new URLSearchParams({ tenantId, userId: user?.id ?? '' });
         const source = new EventSource(`/api/events/workers?${params.toString()}`);
 
-        source.addEventListener('snapshot', event => {
-            const data = JSON.parse((event as MessageEvent).data) as Array<unknown>;
-            const workers = data.map(item => WorkerFrom(item)).filter((item): item is Worker => !!item);
-
-            handlers.onSnapshot(workers);
-        });
-
-        STEP_EVENTS.forEach(name => {
-            source.addEventListener(name, event => {
-                handlers.onStepChange(JSON.parse((event as MessageEvent).data) as WorkerStepEvent);
-            });
-        });
-
-        PLAN_EVENTS.forEach(name => {
-            source.addEventListener(name, () => handlers.onPlanChange());
-        });
+        publisher.events().forEach(event =>
+            source.addEventListener(event, message => publisher.pub(event, JSON.parse(message.data)))
+        );
 
         return () => source.close();
     }

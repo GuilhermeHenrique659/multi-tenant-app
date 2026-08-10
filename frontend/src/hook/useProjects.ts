@@ -1,16 +1,15 @@
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo } from "react";
 import { projectsStore, type Project, type ProjectCollection } from "../model/Project";
 import { tasksStore, type Task, type TaskCollection } from "../model/Task";
 import { ModelCollection } from "../model/common/Collection";
 import { ModelToMapFn } from "../util/ArrayUtil";
+import { useModelStore } from "./common/useModelStore";
 
 export const useProjectStore = <T>(
-    selector: (state: ProjectCollection) => T
+    selector: (state: ProjectCollection) => T,
+    isEqual?: (previous: T, next: T) => boolean
 ) => {
-    return useSyncExternalStore(
-        projectsStore.subscribe,
-        () => selector(projectsStore.getState())
-    );
+    return useModelStore(projectsStore, selector, isEqual);
 }
 
 export const useProjects = () => {
@@ -46,12 +45,10 @@ export const useProjectActions = () => {
 }
 
 export const useTaskStore = <T>(
-    selector: (state: TaskCollection) => T
+    selector: (state: TaskCollection) => T,
+    isEqual?: (previous: T, next: T) => boolean
 ) => {
-    return useSyncExternalStore(
-        tasksStore.subscribe,
-        () => selector(tasksStore.getState())
-    );
+    return useModelStore(tasksStore, selector, isEqual);
 }
 
 /**

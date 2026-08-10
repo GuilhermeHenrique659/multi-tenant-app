@@ -7,14 +7,14 @@ import ProjectHttpGateway from "../gateway/project/ProjectHttpGateway";
 import { CreateProject } from "../application/project/CreateProject";
 import { unwrapOrElse } from "../util/Result";
 
-interface ProjectsNavBarProps {
+type ProjectsNavBarProps = {
   tenantId: string;
   projects: Project[];
   selectedProjectId: string | null;
   onSelectProject: (id: string) => void;
 }
 
-export default function ProjectsNavBar({ tenantId, projects, selectedProjectId, onSelectProject }: ProjectsNavBarProps) {
+export default function ProjectsNavBar({ tenantId, projects, selectedProjectId, onSelectProject }: Readonly<ProjectsNavBarProps>) {
   const navigate = useNavigate();
   const [name, setName] = useState("");
 

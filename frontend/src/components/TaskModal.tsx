@@ -19,7 +19,7 @@ type TaskModalProps = {
   onClose: () => void;
 };
 
-export default function TaskModal({ mode, tenantId, projectId, taskId, onClose }: TaskModalProps) {
+export default function TaskModal({ mode, tenantId, projectId, taskId, onClose }: Readonly<TaskModalProps>) {
   const task = useTask(taskId ?? null);
   const TaskActions = useTaskActions();
   const httpClient = new FetchHttpClient();

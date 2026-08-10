@@ -18,6 +18,10 @@ export class ModelCollection<K, V> {
         return this;
     }
 
+    public keys() {
+        return Array.from(this.collection.keys());
+    }
+
     public values() {
         return Array.from(this.collection.values());
     }

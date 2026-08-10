@@ -1,5 +1,11 @@
 type Listener = () => void;
 
+export type Store<T> = {
+    getState: () => T;
+    setState: (fn: (state: T) => T) => void;
+    subscribe: (listener: Listener) => () => void;
+};
+
 export const createStore = <T>(initialState: T) => {
     let state = initialState;
     const listeners = new Set<Listener>();

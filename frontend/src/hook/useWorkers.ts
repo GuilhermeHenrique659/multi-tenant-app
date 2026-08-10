@@ -1,15 +1,13 @@
-import { useSyncExternalStore } from "react";
 import { workersStore, type Worker, type WorkerCollection } from "../model/Worker";
 import { ModelCollection } from "../model/common/Collection";
 import { ModelToMapFn } from "../util/ArrayUtil";
+import { sameItems, useModelStore } from "./common/useModelStore";
 
 export const useWorkerStore = <T>(
-    selector: (state: WorkerCollection) => T
+    selector: (state: WorkerCollection) => T,
+    isEqual?: (previous: T, next: T) => boolean
 ) => {
-    return useSyncExternalStore(
-        workersStore.subscribe,
-        () => selector(workersStore.getState())
-    );
+    return useModelStore(workersStore, selector, isEqual);
 }
 
 /**
@@ -18,6 +16,19 @@ export const useWorkerStore = <T>(
  */
 export const useWorkers = () => {
     return useWorkerStore(s => s.workers);
+}
+
+/**
+ * Only the ids, so a step change inside a worker does not re-render the list
+ * that renders the cards.
+ */
+export const useWorkerIds = () => {
+    return useWorkerStore(s => s.workers.keys(), sameItems);
+}
+
+/** Re-renders only when this worker is the one that changed. */
+export const useWorker = (workerId: string) => {
+    return useWorkerStore(s => s.workers.get(workerId));
 }
 
 export const useWorkerActions = () => {
@@ -29,8 +40,10 @@ export const useWorkerActions = () => {
         },
 
         /**
-         * Applies the status a single step reached. The state is kept the same
-         * object when there is nothing to change, so no re-render is triggered.
+         * Applies the status a single step reached. Only the patched worker gets
+         * a new identity: the collection and the state stay the same object, so
+         * only the card reading this worker re-renders. Nothing changes when the
+         * step already holds the status.
          */
         patchStep: (workerId: string, order: number, status: string) => {
             workersStore.setState(state => {
@@ -38,12 +51,15 @@ export const useWorkerActions = () => {
 
                 if (!worker) return state;
 
+                const current = worker.props.steps.find(step => step.order === order);
+
+                if (!current || current.status === status) return state;
+
                 const steps = worker.props.steps.map(step => step.order === order ? { ...step, status } : step);
-                const updated: Worker = { props: { ...worker.props, steps } };
 
-                const workers = state.workers.values().map(item => item.props.id === workerId ? updated : item);
+                state.workers.set(workerId, { props: { ...worker.props, steps } });
 
-                return { workers: ModelCollection.from(workers, ModelToMapFn) };
+                return state;
             });
         }
     };
