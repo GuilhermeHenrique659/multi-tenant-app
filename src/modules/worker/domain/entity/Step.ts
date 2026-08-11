@@ -1,6 +1,6 @@
-import ChangeTrackingObserver from "../../@common/ChangeTrackingObserver.js";
-import Id from "../../@common/Id.js";
-import { Subject } from "../../@common/Observer.js";
+import ChangeTrackingObserver from "../../../@common/ChangeTrackingObserver.js";
+import Id from "../../../@common/Id.js";
+import { Subject } from "../../../@common/Observer.js";
 import StepStatus from "./StepStatus.js";
 import StepType from "./StepType.js";
 

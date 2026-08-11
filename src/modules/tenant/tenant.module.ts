@@ -11,7 +11,7 @@ import GetTenantById from "./application/GetTenantById.js";
 import TenantQuery from "./query/TenantQuery.js";
 import { TenantUserModule } from "./UserModule.js";
 
-export default class TenantModuleImpl {
+export default class TenantModule {
     constructor(
         private readonly _db: NodePgDatabase,
         private readonly _mediator: Mediator,

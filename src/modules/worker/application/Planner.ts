@@ -1,11 +1,11 @@
 import AuthorizerApplicationService, { AuthorizedInput } from "../../@common/AuthorizerApplicationService.js";
 import Logger from "../../@common/Logger.js";
-import PlanService from "../domain/PlanService.js";
-import StepCollection from "../domain/StepCollection.js";
-import Worker from "../domain/Worker.js";
-import WorkerType from "../domain/WorkerType.js";
+import PlanService from "../domain/services/PlanService.js";
+import StepCollection from "../domain/entity/StepCollection.js";
+import Worker from "../domain/entity/Worker.js";
+import WorkerType from "../domain/entity/WorkerType.js";
 import { Queue } from "../../@common/queue/Queue.js";
-import { WorkerCreated } from "../domain/WorkerEvents.js";
+import { WorkerCreated } from "../domain/events/WorkerEvents.js";
 import WorkerRepository from "../repository/WorkerRepository.js";
 
 export default class Planner implements AuthorizerApplicationService<Input, Output> {
@@ -32,10 +32,7 @@ export default class Planner implements AuthorizerApplicationService<Input, Outp
 
         await this.workerRepository.save(worker);
 
-        await this._queue.publish({
-            eventName: WorkerCreated,
-            data: { workerId: worker.id, tenantId: input.tenantId, userId: input.userId },
-        })
+        await this._queue.publish(WorkerCreated.from(worker, input.userId))
 
         return {
             workerId: worker.id

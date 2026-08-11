@@ -1,4 +1,4 @@
-import WorkerMemory from "../domain/WorkerMemory.js";
+import WorkerMemory from "../domain/entity/WorkerMemory.js";
 
 /**
  * Where the facts a worker gathered while running are kept, so a run that starts

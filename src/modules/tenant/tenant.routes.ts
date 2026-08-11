@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { authenticationMiddleware } from "../@common/Middleware.js";
 import { db } from "../../db/config.js";
-import TenantModuleImpl from "./tenant.module.js";
+import TenantModule from "./tenant.module.js";
 import { Container } from "../@common/Container.js";
 import { TenantUserModule, TenantUserModuleKey } from "./UserModule.js";
 function getHeader(req: Request, name: string): string {
@@ -15,7 +15,7 @@ function getHeader(req: Request, name: string): string {
 
 const TetantRoutes = (container: Container) => {
     const userModule = container.get<TenantUserModule>(TenantUserModuleKey);
-    const tenantModule = new TenantModuleImpl(db, container.get('mediator'), userModule);
+    const tenantModule = new TenantModule(db, container.get('mediator'), userModule);
     const tenantRouter = Router();
 
     tenantRouter.post('/', 

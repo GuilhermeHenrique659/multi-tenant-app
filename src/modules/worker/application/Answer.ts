@@ -1,8 +1,8 @@
 import AuthorizerApplicationService, { AuthorizedInput } from "../../@common/AuthorizerApplicationService.js";
 import Logger from "../../@common/Logger.js";
 import { Queue } from "../../@common/queue/Queue.js";
-import PlanService from "../domain/PlanService.js";
-import { StepAnswered, StepEventData, WorkerResumed } from "../domain/WorkerEvents.js";
+import PlanService from "../domain/services/PlanService.js";
+import { StepAnswered, WorkerResumed } from "../domain/events/WorkerEvents.js";
 import WorkerCriteria from "../repository/WorkerCriteria.js";
 import WorkerMemoryRepository from "../repository/WorkerMemoryRepository.js";
 import WorkerRepository from "../repository/WorkerRepository.js";
@@ -29,16 +29,7 @@ export default class Answer implements AuthorizerApplicationService<Input, Outpu
 
         const stepAnswered = worker.answer(input.answer);
 
-        const eventData: StepEventData = {
-            workerId: worker.id,
-            tenantId: worker.tenantId,
-            stepId: stepAnswered.id.value,
-            order: stepAnswered.order,
-            action: stepAnswered.action,
-            status: stepAnswered.status.value,
-            answer: stepAnswered.answer,
-        }
-        this._queue.publish({ eventName: StepAnswered, data: eventData });
+        await this._queue.publish(StepAnswered.from(worker, stepAnswered));
 
         const [planError, steps] = await this._planService.planFromAnswer({
             worker,
@@ -60,10 +51,7 @@ export default class Answer implements AuthorizerApplicationService<Input, Outpu
 
         await this._workerRepository.save(worker);
 
-        await this._queue.publish({
-            eventName: WorkerResumed,
-            data: { workerId: worker.id, tenantId: input.tenantId, userId: input.userId },
-        });
+        await this._queue.publish(WorkerResumed.from(worker, input.userId));
 
         return { workerId: worker.id };
     }

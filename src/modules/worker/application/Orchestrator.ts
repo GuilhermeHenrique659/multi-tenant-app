@@ -1,11 +1,11 @@
 import AuthorizerApplicationService, { AuthorizedInput } from "../../@common/AuthorizerApplicationService.js";
 import Logger from "../../@common/Logger.js";
 import Mediator from "../../@common/Mediator.js";
-import StepService from "../domain/StepService.js";
-import Step from "../domain/Step.js";
-import WorkerMemory from "../domain/WorkerMemory.js";
-import Worker from "../domain/Worker.js";
-import { StepAsked, StepCompleted, StepEventData, StepFailed, StepStarted, WorkerFinished } from "../domain/WorkerEvents.js";
+import StepService from "../domain/services/StepService.js";
+import Step from "../domain/entity/Step.js";
+import WorkerMemory from "../domain/entity/WorkerMemory.js";
+import Worker from "../domain/entity/Worker.js";
+import { StepAsked, StepCompleted, StepFailed, StepStarted, WorkerFinished } from "../domain/events/WorkerEvents.js";
 import { Queue } from "../../@common/queue/Queue.js";
 import WorkerCriteria from "../repository/WorkerCriteria.js";
 import WorkerMemoryRepository from "../repository/WorkerMemoryRepository.js";
@@ -36,14 +36,14 @@ export default class Orchestrator implements AuthorizerApplicationService<Input,
             if (!step) break;
 
             if (step.isAsk()) {
-                await this._publishStep(worker, step, StepAsked);
+                await this._queue.publish(StepAsked.from(worker, step));
 
                 break;
             } else if (step.isAction()) {
                 // Saved before the event so whoever reloads the screen also sees the step running.
                 step.setAsRunning();
                 await this.workerRepository.save(worker);
-                await this._publishStep(worker, step, StepStarted);
+                await this._queue.publish(StepStarted.from(worker, step));
 
                 await this._executeActionStep(input, step, worker, memory)
             }
@@ -51,7 +51,7 @@ export default class Orchestrator implements AuthorizerApplicationService<Input,
 
         await this.workerRepository.save(worker);
 
-        if (worker.isDone()) await this._queue.publish({ eventName: WorkerFinished, data: { workerId: worker.id, tenantId: worker.tenantId } });
+        if (worker.isDone()) await this._queue.publish(WorkerFinished.from(worker));
     }
 
     private async _executeActionStep(input: Input, step: Step, worker: Worker, memory: WorkerMemory) {
@@ -91,7 +91,7 @@ export default class Orchestrator implements AuthorizerApplicationService<Input,
         }
 
         await this.workerRepository.save(worker);
-        await this._publishStep(worker, step, StepCompleted);
+        await this._queue.publish(StepCompleted.from(worker, step));
 
         Logger.info(`Worker ${worker.id} step ${step.order} ${step.action}: ran`);
     }
@@ -106,22 +106,9 @@ export default class Orchestrator implements AuthorizerApplicationService<Input,
 
         Logger.error(`Worker ${worker.id} step ${step?.order ?? '?'} ${step?.action ?? ''}: failed: ${error.message}`);
 
-        if (step) await this._publishStep(worker, step, StepFailed);
+        if (step) await this._queue.publish(StepFailed.from(worker, step));
 
         throw error;
-    }
-
-    private async _publishStep(worker: Worker, step: Step, eventName: string): Promise<void> {
-        const data: StepEventData = {
-            workerId: worker.id,
-            tenantId: worker.tenantId,
-            stepId: step.id.value,
-            order: step.order,
-            action: step.action,
-            status: step.status.value,
-        };
-
-        await this._queue.publish({ eventName, data });
     }
 }
 

@@ -1,4 +1,4 @@
-import { Err, Ok, TupleResult } from "../../@common/TupleResult.js";
+import { Err, Ok, TupleResult } from "../../../@common/TupleResult.js";
 
 export default function parseLLMContent(content: string, subject: string): TupleResult<any> {
     try {

@@ -1,9 +1,9 @@
-import { Err, Ok, TupleResult } from "../../@common/TupleResult.js";
-import LLMGateway, { LLMRequest } from "../gateway/LLMGateway.js";
+import { Err, Ok, TupleResult } from "../../../@common/TupleResult.js";
+import LLMGateway, { LLMRequest } from "../../gateway/LLMGateway.js";
 import { ModuleCapabilities } from "./ModuleCapabilities.js";
 import parseLLMContent from "./parseLLMContent.js";
-import Step from "./Step.js";
-import WorkerMemory from "./WorkerMemory.js";
+import Step from "../entity/Step.js";
+import WorkerMemory from "../entity/WorkerMemory.js";
 
 type ResolveInputParams = {
     step: Step;

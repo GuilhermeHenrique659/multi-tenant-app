@@ -1,4 +1,4 @@
-import Worker from "../domain/Worker.js";
+import Worker from "../domain/entity/Worker.js";
 import WorkerCriteria from "./WorkerCriteria.js";
 
 export default interface WorkerRepository {

@@ -1,10 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import FakeLLMGateway from '../gateway/FakeLLMGateway.js';
-import Step from './Step.js';
+import FakeLLMGateway from '../../gateway/FakeLLMGateway.js';
+import Step from '../entity/Step.js';
 import StepService from './StepService.js';
-import StepType from './StepType.js';
-import WorkerMemory from './WorkerMemory.js';
+import StepType from '../entity/StepType.js';
+import WorkerMemory from '../entity/WorkerMemory.js';
 
 describe('StepService', () => {
     function createStep(action: string, input: any, order = 1) {

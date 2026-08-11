@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import ChangeTrackingObserver from '../../@common/ChangeTrackingObserver.js';
+import ChangeTrackingObserver from '../../../@common/ChangeTrackingObserver.js';
 import Step from './Step.js';
 import StepCollection from './StepCollection.js';
 import StepType from './StepType.js';

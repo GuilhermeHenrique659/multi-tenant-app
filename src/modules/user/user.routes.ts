@@ -1,5 +1,5 @@
 import { Router } from "express";
-import UserModuleImpl from "./user.module.js";
+import UserModule from "./user.module.js";
 import { db } from "../../db/config.js";
 import { Container } from "../@common/Container.js";
 import UserQuery from "./query/UserQuery.js";
@@ -7,7 +7,7 @@ import UserQuery from "./query/UserQuery.js";
 const UserRoutes = (container: Container) => {
 
     const userRoutes = Router();
-    const userModule = new UserModuleImpl(db);
+    const userModule = new UserModule(db);
     const userQuery = new UserQuery(db);
 
     userRoutes.post('/', async (req, res) => {        

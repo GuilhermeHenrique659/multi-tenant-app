@@ -27,10 +27,7 @@ export const WorkerEvents = (dependencies: StreamWorkersDependencies) => ({ publ
 
 
     const onStepUpdated = (event: WorkerStepEvent) => updateStep(event.stepId, event.order, event.status, event.answer);
-    publisher.sub('StepStarted', onStepUpdated);
-    publisher.sub('StepCompleted', onStepUpdated);
-    publisher.sub('StepFailed', onStepUpdated);
-    publisher.sub('StepAnswered', onStepUpdated);
+    publisher.sub('StepUpdated', onStepUpdated);
 
     publisher.sub('snapshot', (data) => {
         const workers = FromList(data);
@@ -38,7 +35,7 @@ export const WorkerEvents = (dependencies: StreamWorkersDependencies) => ({ publ
     });
 
     publisher.sub('WorkerCreated', readAgain);
-    publisher.sub('WorkerResumed', readAgain);
+    publisher.sub('WorkerUpdated', readAgain);
 
 
     return dependencies.workerGateway.streamEvents(tenantId, publisher);

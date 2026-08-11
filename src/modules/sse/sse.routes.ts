@@ -57,17 +57,8 @@ const SseRoutes = (container: Container) => {
 
         connection.send('snapshot', snapshot);
 
-        const forward = (event: string) => async (data: any) => {
-            if (!stream.accepts(data, request)) return;
 
-            connection.send(event, stream.payload(data));
-        };
-
-        const unsubscribes: Unsubscribe[] = [];
-
-        for (const event of stream.events) {
-            unsubscribes.push(await queue.subscriber(event, forward(event)));
-        }
+        const unsubscribes: Unsubscribe[] = await stream.register(queue, connection, request);
 
         req.on('close', () => {
             unsubscribes.forEach(unsubscribe => unsubscribe());

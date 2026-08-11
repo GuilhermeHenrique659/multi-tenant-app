@@ -1,6 +1,9 @@
-import { EventStream, StreamRequest } from "../sse/index.js";
-import { StepEventData, StepEvents, WorkerFinished, WorkerPlanEvents } from "./domain/WorkerEvents.js";
+import SseConnection from "../sse/SseConnection.js";
 import WorkerModule from "./worker.module.js";
+
+import { Queue } from "../@common/queue/Queue.js";
+import { EventStream, createServerEventEmitter, StreamRequest } from "../sse/index.js";
+import { StepEventData } from "./domain/events/WorkerEvents.js";
 
 /**
  * Exposes the step status changes of a tenant as a stream. The snapshot is the
@@ -8,8 +11,6 @@ import WorkerModule from "./worker.module.js";
  * same place.
  */
 export default class WorkerEventStream implements EventStream {
-    readonly events = [...WorkerPlanEvents, ...StepEvents, WorkerFinished];
-
     constructor(private readonly _workerModule: WorkerModule) { }
 
     public async open(request: StreamRequest): Promise<unknown> {
@@ -20,10 +21,21 @@ export default class WorkerEventStream implements EventStream {
         return data.tenantId === request.tenantId;
     }
 
-    /** The tenant is already filtered, so it does not need to reach the client. */
-    public payload(data: StepEventData): unknown {
-        const { tenantId: _tenantId, ...payload } = data;
+    public async register(queue: Queue, connection: SseConnection, request: StreamRequest) {
+        const serverEventEmitter = createServerEventEmitter(connection, request, this);
 
-        return payload;
+        const unsubscribes = await Promise.all([
+            queue.subscriber('WorkerCreated', serverEventEmitter('WorkerCreated')),
+            queue.subscriber('WorkerResumed', serverEventEmitter('WorkerUpdated')),
+            queue.subscriber('WorkerFinished', serverEventEmitter('WorkerUpdated')),
+
+            queue.subscriber('StepStarted', serverEventEmitter('StepUpdated')),
+            queue.subscriber('StepCompleted', serverEventEmitter('StepUpdated')),
+            queue.subscriber('StepFailed', serverEventEmitter('StepUpdated')),
+            queue.subscriber('StepAsked', serverEventEmitter('StepUpdated')),
+            queue.subscriber('StepAnswered', serverEventEmitter('StepUpdated'))
+        ]);
+
+        return unsubscribes;
     }
 }

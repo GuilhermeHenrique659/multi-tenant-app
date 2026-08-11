@@ -1,8 +1,8 @@
 import AuthorizerApplicationService, { AuthorizedInput } from "../../@common/AuthorizerApplicationService.js";
 import Logger from "../../@common/Logger.js";
 import { Queue } from "../../@common/queue/Queue.js";
-import PlanService from "../domain/PlanService.js";
-import { WorkerResumed } from "../domain/WorkerEvents.js";
+import PlanService from "../domain/services/PlanService.js";
+import { WorkerResumed } from "../domain/events/WorkerEvents.js";
 import WorkerCriteria from "../repository/WorkerCriteria.js";
 import WorkerMemoryRepository from "../repository/WorkerMemoryRepository.js";
 import WorkerRepository from "../repository/WorkerRepository.js";
@@ -48,10 +48,7 @@ export default class ResumeWorker implements AuthorizerApplicationService<Input,
 
         await this.workerRepository.save(worker);
 
-        await this._queue.publish({
-            eventName: WorkerResumed,
-            data: { workerId: worker.id, tenantId: input.tenantId, userId: input.userId },
-        });
+        await this._queue.publish(WorkerResumed.from(worker, input.userId));
 
         return { workerId: worker.id };
     }

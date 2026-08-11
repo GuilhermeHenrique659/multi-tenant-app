@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import FakeLLMGateway from '../gateway/FakeLLMGateway.js';
-import PlanService from '../domain/PlanService.js';
+import PlanService from '../domain/services/PlanService.js';
 import FakeWorkerRepository from '../repository/FakeWorkerRepository.js';
 import WorkerCriteria from '../repository/WorkerCriteria.js';
 import { DomainEvent, Queue, Unsubscribe } from '../../@common/queue/Queue.js';
@@ -44,9 +44,9 @@ describe('Planner', () => {
         assert.equal(worker.isDone(), false);
         assert.deepEqual(worker.steps.getAll().map(step => step.action), ['createProject', 'addTask']);
         assert.ok(worker.steps.getAll().every(step => step.workerId.value === output.workerId));
-        assert.deepEqual(queue.published, [{
-            eventName: 'WorkerCreated',
-            data: { workerId: output.workerId, tenantId: 'tenant-1', userId: 'user-1' },
-        }]);
+        assert.deepEqual(queue.published.map(event => event.eventName), ['WorkerCreated']);
+        assert.deepEqual(queue.published.map(event => event.data), [
+            { workerId: output.workerId, tenantId: 'tenant-1', userId: 'user-1' },
+        ]);
     });
 });

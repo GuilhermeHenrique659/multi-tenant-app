@@ -3,7 +3,7 @@ import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { WorkerStepTable } from "../db/WorkerStepTable.js";
 import { WorkerTable } from "../db/WorkerTable.js";
 import { WorkerListItem } from "../index.js";
-import StepType from "../domain/StepType.js";
+import StepType from "../domain/entity/StepType.js";
 
 export type WorkerStepRow = {
     id: string;

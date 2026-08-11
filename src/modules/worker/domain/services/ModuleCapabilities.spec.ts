@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { Permissions } from '../../@common/Permissions.js';
+import { Permissions } from '../../../@common/Permissions.js';
 import { ModuleCapabilities } from './ModuleCapabilities.js';
 
 describe('ModuleCapabilities', () => {

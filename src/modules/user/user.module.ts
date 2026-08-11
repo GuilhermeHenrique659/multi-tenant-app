@@ -15,7 +15,7 @@ import SuperAdminAuthorizerApplicationService, { SuperAdminInput } from "../@com
 import AuthorizerDecorator from "./application/AuthorizerDecorator.js";
 import SuperAdminAuthorizerDecorator from "./application/SuperAdminAuthorizerDecorator.js";
 
-export default class UserModuleImpl implements ProjectUserModule, TenantUserModule {
+export default class UserModule implements ProjectUserModule, TenantUserModule {
     constructor(private readonly _db: NodePgDatabase) { }
 
     async getUser(userId: string, tenantId: string): Promise<UserTask | null> {

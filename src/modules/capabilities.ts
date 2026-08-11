@@ -1,16 +1,16 @@
 import Mediator from "./@common/Mediator.js";
 import ProjectModule from "./project/project.module.js";
-import TenantModuleImpl from "./tenant/tenant.module.js";
+import TenantModule from "./tenant/tenant.module.js";
 
 /**
  * Every action a worker can dispatch, wired to the use case that runs it.
- * The keys must match `action` in worker/domain/ModuleCapabilities.ts, and the
+ * The keys must match `action` in worker/domain/services/ModuleCapabilities.ts, and the
  * module facades keep the permission check of each use case in place.
  */
 export default async function registerCapabilities(
     mediator: Mediator,
     projectModule: ProjectModule,
-    tenantModule: TenantModuleImpl,
+    tenantModule: TenantModule,
 ): Promise<void> {
     await mediator.register('createProject', async (input: any) => projectModule.createProject(input));
     await mediator.register('listProjects', async (input: any) => projectModule.listProjects(input));

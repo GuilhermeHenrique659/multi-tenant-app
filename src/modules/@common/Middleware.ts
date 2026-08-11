@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import TenantQuery from "../tenant/query/TenantQuery.js";
 import { Permissions } from "./Permissions.js";
 import UserQuery, { UserType } from "../user/query/UserQuery.js";
-import UserModuleImpl from "../user/user.module.js";
+import UserModule from "../user/user.module.js";
 
 export const tenantSubdomainMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     const host = req.headers.host;
@@ -76,7 +76,7 @@ export const permssionMiddleware = (permisssions: string[]) => async (req: Reque
 
     if (user.isSuperAdmin) return next();
 
-    const hasAllPermissions = await new UserModuleImpl(db).hasPermissions(String(tenant) as string, String(user.id) as string, permisssions);
+    const hasAllPermissions = await new UserModule(db).hasPermissions(String(tenant) as string, String(user.id) as string, permisssions);
 
     if (!hasAllPermissions) {
         return res.status(403).json({

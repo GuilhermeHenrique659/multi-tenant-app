@@ -1,4 +1,4 @@
-import WorkerMemory, { MemoryEntry } from "../domain/WorkerMemory.js";
+import WorkerMemory, { MemoryEntry } from "../domain/entity/WorkerMemory.js";
 import WorkerMemoryRepository from "./WorkerMemoryRepository.js";
 
 /**

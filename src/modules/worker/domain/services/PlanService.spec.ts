@@ -1,12 +1,12 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import FakeLLMGateway from '../gateway/FakeLLMGateway.js';
+import FakeLLMGateway from '../../gateway/FakeLLMGateway.js';
 import PlanService from './PlanService.js';
-import StepCollection from './StepCollection.js';
-import StepType from './StepType.js';
-import Worker from './Worker.js';
-import WorkerMemory from './WorkerMemory.js';
-import WorkerType from './WorkerType.js';
+import StepCollection from '../entity/StepCollection.js';
+import StepType from '../entity/StepType.js';
+import Worker from '../entity/Worker.js';
+import WorkerMemory from '../entity/WorkerMemory.js';
+import WorkerType from '../entity/WorkerType.js';
 
 describe('PlanService', () => {
     const plan = JSON.stringify({

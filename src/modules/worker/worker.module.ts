@@ -1,22 +1,21 @@
-import { NodePgDatabase } from "drizzle-orm/node-postgres";
+import Answer from "./application/Answer.js";
+import DeferredQueue from "../@common/queue/DeferredQueue.js";
+import ListWorkers from "./application/ListWorkers.js";
+import LLMGateway from "./gateway/LLMGateway.js";
 import Logger from "../@common/Logger.js";
 import Mediator from "../@common/Mediator.js";
-import ListWorkers from "./application/ListWorkers.js";
 import Orchestrator from "./application/Orchestrator.js";
 import Planner from "./application/Planner.js";
+import PlanService from "./domain/services/PlanService.js";
 import ResumeWorker from "./application/ResumeWorker.js";
-import PlanService from "./domain/PlanService.js";
-import StepService from "./domain/StepService.js";
-import LLMGateway from "./gateway/LLMGateway.js";
-import WorkerQuery from "./query/WorkerQuery.js";
-import DeferredQueue from "../@common/queue/DeferredQueue.js";
-import { Queue } from "../@common/queue/Queue.js";
-import { WorkerPlanEvents } from "./domain/WorkerEvents.js";
+import StepService from "./domain/services/StepService.js";
 import WorkerMemoryRepositoryInMemory from "./repository/WorkerMemoryRepositoryInMemory.js";
+import WorkerQuery from "./query/WorkerQuery.js";
 import WorkerRepositoryDatabase from "./repository/WorkerRepositoryDatabase.js";
+import { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { Queue } from "../@common/queue/Queue.js";
 import { WorkerUserModule } from "./UserModule.js";
 import { AnswerStepRequest, ListWorkersRequest, PlanWorkerOutput, PlanWorkerRequest, ResumeWorkerRequest, RunWorkerRequest, WorkerListItem } from "./index.js";
-import Answer from "./application/Answer.js";
 
 export const WorkerModuleKey = "WorkerModule";
 
@@ -34,6 +33,14 @@ export default class WorkerModule {
         private readonly _mediator: Mediator,
         private readonly _userModule: WorkerUserModule,
     ) { }
+
+    private async runWorkerSubscriber(data: RunWorkerRequest) {
+        Logger.info(`Running worker ${data.workerId}`);
+
+        await this.run(data);
+
+        Logger.info(`Worker ${data.workerId} finished`);
+    }
 
     public async plan(input: PlanWorkerRequest): Promise<PlanWorkerOutput> {
         const deferredQueue = new DeferredQueue(this._queue);
@@ -112,14 +119,7 @@ export default class WorkerModule {
 
     /** A worker runs when it is created and every time it is resumed. */
     public async listen(): Promise<void> {
-        for (const event of WorkerPlanEvents) {
-            await this._queue.subscriber(event, async (data: RunWorkerRequest) => {
-                Logger.info(`Running worker ${data.workerId}`);
-
-                await this.run(data);
-
-                Logger.info(`Worker ${data.workerId} finished`);
-            });
-        }
+        await this._queue.subscriber('WorkerCreated', (data) => this.runWorkerSubscriber(data));
+        await this._queue.subscriber('WorkerResumed', (data) => this.runWorkerSubscriber(data));
     }
 }

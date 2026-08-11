@@ -1,3 +1,6 @@
+import { Queue, Subscriber, Unsubscribe } from "../@common/queue/Queue.js";
+import SseConnection from "./SseConnection.js";
+
 export const EventStreamsKey = "EventStreams";
 
 /** Who is asking for the stream; the same shape the authorizers expect. */
@@ -11,9 +14,6 @@ export type StreamRequest = {
  * sse module never needs to know anything about that module.
  */
 export interface EventStream {
-    /** Names of the queue events forwarded to the client. */
-    readonly events: string[];
-
     /**
      * Authorizes the caller and returns the state sent as the first event of the
      * stream. Throwing here closes the stream before it opens.
@@ -24,5 +24,11 @@ export interface EventStream {
     accepts(data: any, request: StreamRequest): boolean;
 
     /** What of the event goes on the wire. */
-    payload(data: any): unknown;
+    register(queue: Queue, connection: SseConnection, request: StreamRequest): Promise<Array<Unsubscribe>>;
 }
+
+export const createServerEventEmitter = (connection: SseConnection, request: StreamRequest, stream: EventStream) => (event: string) => async (data: any) => {
+    if (!stream.accepts(data, request)) return;
+
+    connection.send(event, data);
+};

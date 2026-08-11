@@ -1,11 +1,11 @@
-import { Err, Ok, TupleResult } from "../../@common/TupleResult.js";
-import LLMGateway, { LLMRequest } from "../gateway/LLMGateway.js";
+import { Err, Ok, TupleResult } from "../../../@common/TupleResult.js";
+import LLMGateway, { LLMRequest } from "../../gateway/LLMGateway.js";
 import { ModuleCapabilities } from "./ModuleCapabilities.js";
 import parseLLMContent from "./parseLLMContent.js";
-import Step from "./Step.js";
-import StepType from "./StepType.js";
-import Worker, { PlannedStep } from "./Worker.js";
-import WorkerMemory from "./WorkerMemory.js";
+import Step from "../entity/Step.js";
+import StepType from "../entity/StepType.js";
+import Worker, { PlannedStep } from "../entity/Worker.js";
+import WorkerMemory from "../entity/WorkerMemory.js";
 
 type CreatePlanParams = {
     userPrompt: string;
