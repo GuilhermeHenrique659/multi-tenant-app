@@ -8,6 +8,7 @@ import Worker from "../domain/Worker.js";
 import { StepAsked, StepCompleted, StepEventData, StepFailed, StepStarted, WorkerFinished } from "../domain/WorkerEvents.js";
 import { Queue } from "../../@common/queue/Queue.js";
 import WorkerCriteria from "../repository/WorkerCriteria.js";
+import WorkerMemoryRepository from "../repository/WorkerMemoryRepository.js";
 import WorkerRepository from "../repository/WorkerRepository.js";
 
 export default class Orchestrator implements AuthorizerApplicationService<Input, void> {
@@ -16,6 +17,7 @@ export default class Orchestrator implements AuthorizerApplicationService<Input,
         private readonly stepService: StepService,
         private readonly _mediator: Mediator = new Mediator(),
         private readonly _queue: Queue,
+        private readonly _memoryRepository: WorkerMemoryRepository,
     ) { }
 
     public async execute(input: Input): Promise<void> {
@@ -25,7 +27,8 @@ export default class Orchestrator implements AuthorizerApplicationService<Input,
 
         if (!worker) throw new Error('worker not found');
 
-        const memory = WorkerMemory.empty();
+        // What the previous runs already produced, so a resumed run does not need it again.
+        const memory = await this._memoryRepository.get(worker.id);
 
         while (!worker.isDone()) {
             const step = worker.nextStep();
@@ -78,11 +81,14 @@ export default class Orchestrator implements AuthorizerApplicationService<Input,
         // The action already ran, so the step stays complete even if the memory cannot be built.
         const [factsError, facts] = await this.stepService.interpretOutput({ step, output });
 
+        // What it produced is recorded even when it could not be normalized, so a
+        // run that starts again does not create the same thing twice.
+        memory.record({ order: step.order, action: step.action, input: stepInput, output: factsError ? output : facts });
+        await this._memoryRepository.save(worker.id, memory);
+
         if (factsError) {
             return this._stop(worker, factsError, step);
         }
-
-        memory.record({ order: step.order, action: step.action, input: stepInput, output: facts });
 
         await this.workerRepository.save(worker);
         await this._publishStep(worker, step, StepCompleted);

@@ -2,8 +2,10 @@ import { Err, Ok, TupleResult } from "../../@common/TupleResult.js";
 import LLMGateway, { LLMRequest } from "../gateway/LLMGateway.js";
 import { ModuleCapabilities } from "./ModuleCapabilities.js";
 import parseLLMContent from "./parseLLMContent.js";
+import Step from "./Step.js";
 import StepType from "./StepType.js";
 import Worker, { PlannedStep } from "./Worker.js";
+import WorkerMemory from "./WorkerMemory.js";
 
 type CreatePlanParams = {
     userPrompt: string;
@@ -13,8 +15,13 @@ type CreatePlanParams = {
 
 type ReplanParams = {
     worker: Worker;
+    memory: WorkerMemory;
     tenantId: string;
     userId: string;
+};
+
+type PlanFromAnswerParams = ReplanParams & {
+    answeredStep: Step;
 };
 
 type Plan = {
@@ -39,21 +46,48 @@ const PLAN_INSTRUCTIONS = [
     '`order` starts at 1 and increases by 1.',
 ].join(' ');
 
+/** What the completed steps produced, which is what keeps a plan from redoing them. */
+const MEMORY_INSTRUCTION = [
+    'What each completed step produced is in `memory`, under the `order` of the step:',
+    '`input` is what it ran with and `output` is what it created, with the ids of what now exists.',
+    'Take every value you need from there and never create again anything a completed step created.',
+    'Plan a read action only for what you need and `memory` does not have.',
+].join(' ');
+
 const RESUME_INSTRUCTIONS = [
     'You analyze again a plan that stopped before finishing and decide how to resume it.',
     'The steps already `completed` were executed: everything they created already exists in the system',
     'and must never be created again, even if the user request describes it.',
-    'What those steps produced was not kept, so you do not know the ids of what already exists:',
-    'start the plan with the read actions needed to find it again (for example `listProjects` to find',
-    'the project a completed `createProject` created) and let the later steps take the ids from them.',
+    MEMORY_INSTRUCTION,
     'The step that failed may have done part of its work, so read the current state before acting on it:',
     'plan a read step to check whether what it was creating is already there, and only then create what is missing.',
     'Its reason for failing is in `error`: fix the plan instead of repeating what cannot work.',
-    'A step of type "ask" that is `running` and carries an `answer` was already answered by the user:',
-    'take that answer as the data it was asking for, never ask the same question again,',
-    'and plan from it the steps that were waiting for that data, describing in their input that the value comes from it.',
+    'A step of type "ask" that is `completed` carries in `answer` what the user answered:',
+    'take that answer as data the user already gave and never ask the same question again.',
     'Plan only what is still missing to fulfill `userPrompt`, from where the worker stopped.',
     'You may create as many steps as needed, replacing every step that is not completed.',
+    'Use only the actions listed in `capabilities`; each step must reference one of them.',
+    'The `input` json schema of the chosen capability defines the fields of the step input.',
+    ASK_INSTRUCTION,
+    'When a step needs a value produced by a previous step, describe where it comes from in its input;',
+    'the concrete value is resolved at execution time, so a placeholder is expected.',
+    '`order` starts at 1 and increases by 1.',
+    'Answer only with { "steps": [ ... ] }; an empty list means there is nothing left to do.',
+].join(' ');
+
+const ANSWER_INSTRUCTIONS = [
+    'You continue a plan that stopped to ask the user something, now that the answer arrived.',
+    '`answeredStep` is the step of type "ask" that was asking, with the question in its `input`',
+    'and in `answer` exactly what the user replied: that is the data the plan was missing.',
+    'Take it as given, never ask that question again and never plan another "ask" for the same data.',
+    'Plan the steps that were waiting for it, using the answer as the value they needed:',
+    'write the value itself in the input of the step that uses it.',
+    'The steps already `completed` were executed: everything they created already exists in the system',
+    'and must never be created again, even if the user request describes it.',
+    MEMORY_INSTRUCTION,
+    'The steps that are not completed were only a sketch made before the answer existed:',
+    'every one of them is replaced by what you return, so plan again what is still missing.',
+    'Plan only what is left to fulfill `userPrompt`, from where the worker stopped.',
     'Use only the actions listed in `capabilities`; each step must reference one of them.',
     'The `input` json schema of the chosen capability defines the fields of the step input.',
     ASK_INSTRUCTION,
@@ -149,7 +183,7 @@ export default class PlanService {
      * Reads the worker as it stopped and plans what is left to do, so the run can
      * be resumed instead of started over.
      */
-    public async replan({ worker, tenantId, userId }: ReplanParams): Promise<TupleResult<PlannedStep[]>> {
+    public async replan({ worker, memory, tenantId, userId }: ReplanParams): Promise<TupleResult<PlannedStep[]>> {
         const request: LLMRequest = {
             messages: [
                 { role: 'system', content: RESUME_INSTRUCTIONS },
@@ -157,19 +191,8 @@ export default class PlanService {
                     role: 'user',
                     content: JSON.stringify({
                         userPrompt: worker.userPrompt,
-                        worker: {
-                            name: worker.name,
-                            type: worker.type.value,
-                            steps: worker.steps.getAll().map(step => ({
-                                order: step.order,
-                                action: step.action,
-                                input: step.input,
-                                type: step.type.value,
-                                status: step.status.value,
-                                ...(step.answer ? { answer: step.answer } : {}),
-                                ...(step.error ? { error: step.error } : {}),
-                            })),
-                        },
+                        worker: this.toWorkerContent(worker),
+                        memory: memory.getAll(),
                         capabilities: ModuleCapabilities,
                         context: { tenantId, userId },
                     }),
@@ -178,11 +201,63 @@ export default class PlanService {
             jsonSchema: { name: 'worker_resume_plan', schema: RESUME_SCHEMA },
         };
 
+        return this.plannedSteps(request, 'worker resume plan');
+    }
+
+    /**
+     * Plans what is left once the user answers a step that was asking, so the
+     * answer is the data the remaining steps take instead of a new question.
+     */
+    public async planFromAnswer({ worker, answeredStep, memory, tenantId, userId }: PlanFromAnswerParams): Promise<TupleResult<PlannedStep[]>> {
+        const request: LLMRequest = {
+            messages: [
+                { role: 'system', content: ANSWER_INSTRUCTIONS },
+                {
+                    role: 'user',
+                    content: JSON.stringify({
+                        userPrompt: worker.userPrompt,
+                        answeredStep: {
+                            order: answeredStep.order,
+                            action: answeredStep.action,
+                            input: answeredStep.input,
+                            answer: answeredStep.answer,
+                        },
+                        worker: this.toWorkerContent(worker),
+                        memory: memory.getAll(),
+                        capabilities: ModuleCapabilities,
+                        context: { tenantId, userId },
+                    }),
+                },
+            ],
+            jsonSchema: { name: 'worker_answer_plan', schema: RESUME_SCHEMA },
+        };
+
+        return this.plannedSteps(request, 'worker answer plan');
+    }
+
+    /** What the worker looks like right now, which is what both plans read. */
+    private toWorkerContent(worker: Worker) {
+        return {
+            name: worker.name,
+            type: worker.type.value,
+            steps: worker.steps.getAll().map(step => ({
+                order: step.order,
+                action: step.action,
+                input: step.input,
+                type: step.type.value,
+                status: step.status.value,
+                ...(step.answer ? { answer: step.answer } : {}),
+                ...(step.error ? { error: step.error } : {}),
+            })),
+        };
+    }
+
+    private async plannedSteps(request: LLMRequest, name: string): Promise<TupleResult<PlannedStep[]>> {
         const [chatError, response] = await this.llmGateway.chat(request);
 
         if (chatError) return Err(chatError);
 
-        const [parseError, parsed] = parseLLMContent(response.content, 'worker resume plan');
+        const [parseError, parsed] = parseLLMContent(response.content, name);
 
         if (parseError) return Err(parseError);
 

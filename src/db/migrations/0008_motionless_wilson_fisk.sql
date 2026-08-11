@@ -1,0 +1,1 @@
+ALTER TABLE "worker_steps" ADD COLUMN "answer" varchar;

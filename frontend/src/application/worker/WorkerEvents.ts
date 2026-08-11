@@ -11,7 +11,7 @@ type StreamWorkersDependencies = {
 type WorkersEventInput = {
     tenantId: string;
     publisher: PublisherType;
-    updateStep: (workerId: string, order: number, status: string) => void;
+    updateStep: (workerId: string, order: number, status: string, answer?: string | null) => void;
     setWorkers: (input: Array<Worker>) => void
 }
 
@@ -26,10 +26,11 @@ export const WorkerEvents = (dependencies: StreamWorkersDependencies) => ({ publ
         .then(result => setWorkers(result.unwrapOr([])));
 
 
-    const onStepUpdated = (event: WorkerStepEvent) => updateStep(event.stepId, event.order, event.status);
+    const onStepUpdated = (event: WorkerStepEvent) => updateStep(event.stepId, event.order, event.status, event.answer);
     publisher.sub('StepStarted', onStepUpdated);
     publisher.sub('StepCompleted', onStepUpdated);
     publisher.sub('StepFailed', onStepUpdated);
+    publisher.sub('StepAnswered', onStepUpdated);
 
     publisher.sub('snapshot', (data) => {
         const workers = FromList(data);

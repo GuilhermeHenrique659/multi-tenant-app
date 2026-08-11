@@ -5,4 +5,6 @@ export type WorkerStepEvent = {
     order: number;
     action: string;
     status: string;
+    /** Only comes with the event of a step that was answered. */
+    answer?: string | null;
 }

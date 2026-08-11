@@ -11,4 +11,5 @@ export default interface WorkerGateway {
     resume(tenantId: string, workerId: string): Promise<Result<{ workerId: string }, Error>>;
     list(tenantId: string): Promise<Result<Array<Worker>, Error>>;
     streamEvents(tenantId: string, publisher: PublisherType): CloseStream;
+    answer(tenantId: string, workerId: string, stepId: string, answer: string): Promise<Result<{ workerId: string }, Error>>;
 }

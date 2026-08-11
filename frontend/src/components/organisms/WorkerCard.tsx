@@ -8,6 +8,7 @@ type WorkerCardProps = {
   isResuming: boolean;
   canResume: boolean;
   onResume: (workerId: string) => void;
+  onAnswer: (workerId: string, stepId: string, answer: string) => Promise<void>;
 }
 
 /**
@@ -15,7 +16,7 @@ type WorkerCardProps = {
  * that worker. `memo` keeps the card still when the sidebar re-renders for its
  * own reasons, such as typing in the prompt.
  */
-function WorkerCard({ workerId, isResuming, canResume, onResume }: Readonly<WorkerCardProps>) {
+function WorkerCard({ workerId, isResuming, canResume, onResume, onAnswer }: Readonly<WorkerCardProps>) {
   const worker = useWorker(workerId);
   const [showSteps, setShowSteps] = useState(false);
 
@@ -39,7 +40,7 @@ function WorkerCard({ workerId, isResuming, canResume, onResume }: Readonly<Work
       {showSteps ? (
         <ol className="worker-step-list">
           {worker.props.steps.map((step) => (
-            <WorkerStep key={`${workerId}-${step.order}`} step={step} />
+            <WorkerStep key={step.id} step={step} workerId={workerId} onAnswer={onAnswer} />
           ))}
         </ol>
       ) : null}

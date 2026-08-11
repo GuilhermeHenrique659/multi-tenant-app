@@ -32,12 +32,13 @@ export default class WorkerRepositoryDatabase implements WorkerRepository {
         for (const step of worker.steps.getAll()) {
             const stepTracker = step.findObserver<ChangeTrackingObserver>(o => o instanceof ChangeTrackingObserver);
 
-            if (!stepTracker?.hasEvent("StatusChanged")) continue;
-
-            await this._db.update(WorkerStepTable).set({
-                status: step.status.value,
-                error: step.error ?? null,
-            }).where(eq(WorkerStepTable.id, step.id.value));
+            if (stepTracker?.hasEvent("StepUpdated")) {
+                await this._db.update(WorkerStepTable).set({
+                    status: step.status.value,
+                    error: step.error ?? null,
+                    answer: step.answer,
+                }).where(eq(WorkerStepTable.id, step.id.value));
+            }
         }
     }
 
@@ -72,6 +73,7 @@ export default class WorkerRepositoryDatabase implements WorkerRepository {
                 type: step.type,
                 status: step.status,
                 error: step.error,
+                answer: step.answer,
             })),
         });
     }

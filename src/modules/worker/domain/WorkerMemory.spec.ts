@@ -16,6 +16,17 @@ describe('WorkerMemory', () => {
         assert.deepEqual(WorkerMemory.empty().getAll(), []);
     });
 
+    /** A step that runs again did not produce a second thing, it produced the same one. */
+    it('replaces what a step had recorded when it runs again', () => {
+        const memory = WorkerMemory.empty();
+
+        memory.record({ order: 1, action: 'createProject', input: {}, output: { projectId: 'project-1' } });
+        memory.record({ order: 1, action: 'createProject', input: {}, output: { projectId: 'project-2' } });
+
+        assert.equal(memory.getAll().length, 1);
+        assert.deepEqual(memory.getAll()[0]!.output, { projectId: 'project-2' });
+    });
+
     it('round trips through toJSON and restore', () => {
         const memory = WorkerMemory.empty();
         memory.record({ order: 1, action: 'createProject', input: { name: 'App' }, output: { projectId: 'project-1' } });

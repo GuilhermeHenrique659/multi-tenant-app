@@ -15,6 +15,8 @@ const WorkerStepSchema = z.object({
     type: z.string(),
     input: AskInputSchema.nullable().default(null),
     error: z.string().nullable().default(null),
+    /** What the user answered, which only a step of type `ask` has. */
+    answer: z.string().nullable().default(null),
 });
 
 const WorkerSchema = z.object({

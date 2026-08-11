@@ -19,6 +19,18 @@ describe('Worker', () => {
         return worker;
     }
 
+    /** A worker whose first step asks the user, which is where an answer arrives. */
+    function createAskingWorker() {
+        const worker = Worker.create('tenant-1', 'Bootstrap project', 'create a project', WorkerType.create('project'), StepCollection.empty());
+
+        worker.plan([
+            { action: 'askUser', input: { question: 'What is the name of the project?' }, order: 1, type: StepType.ask() },
+            { action: 'createProject', input: { name: '<from step 1>' }, order: 2, type: StepType.action() },
+        ]);
+
+        return worker;
+    }
+
     function trackerOf(worker: Worker) {
         return worker.findObserver<ChangeTrackingObserver>(o => o instanceof ChangeTrackingObserver)!;
     }
@@ -95,5 +107,41 @@ describe('Worker', () => {
         worker.steps.getAll().forEach(step => step.setAsComplete());
 
         assert.ok(worker.isDone());
+    });
+
+    /** The answer is data the plan already has, so the step that asked is finished. */
+    it('completes the step that asked when the user answers it', () => {
+        const worker = createAskingWorker();
+        const asking = worker.steps.getAll()[0]!;
+
+        const answered = worker.answer({ stepId: asking.id.value, data: 'App' });
+
+        assert.equal(answered.id.value, asking.id.value);
+        assert.equal(answered.answer, 'App');
+        assert.ok(answered.status.isCompleted());
+        assert.notEqual(worker.nextStep()?.id.value, asking.id.value);
+    });
+
+    it('keeps the answered step and its answer when the plan is made again from it', () => {
+        const worker = createAskingWorker();
+        const asking = worker.steps.getAll()[0]!;
+
+        worker.answer({ stepId: asking.id.value, data: 'App' });
+        worker.replan([{ action: 'createProject', input: { name: 'App' }, order: 1, type: StepType.action() }]);
+
+        const steps = worker.steps.getAll();
+
+        assert.deepEqual(steps.map(step => step.action), ['askUser', 'createProject']);
+        assert.equal(steps[0]!.answer, 'App');
+        assert.equal(worker.nextStep()?.action, 'createProject');
+    });
+
+    it('does not accept an answer for a step that is not asking anymore', () => {
+        const worker = createAskingWorker();
+        const asking = worker.steps.getAll()[0]!;
+
+        worker.answer({ stepId: asking.id.value, data: 'App' });
+
+        assert.throws(() => worker.answer({ stepId: asking.id.value, data: 'Other' }), /Step must be pending/);
     });
 });

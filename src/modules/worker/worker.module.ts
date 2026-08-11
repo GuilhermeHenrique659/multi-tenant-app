@@ -12,13 +12,21 @@ import WorkerQuery from "./query/WorkerQuery.js";
 import DeferredQueue from "../@common/queue/DeferredQueue.js";
 import { Queue } from "../@common/queue/Queue.js";
 import { WorkerPlanEvents } from "./domain/WorkerEvents.js";
+import WorkerMemoryRepositoryInMemory from "./repository/WorkerMemoryRepositoryInMemory.js";
 import WorkerRepositoryDatabase from "./repository/WorkerRepositoryDatabase.js";
 import { WorkerUserModule } from "./UserModule.js";
-import { ListWorkersRequest, PlanWorkerOutput, PlanWorkerRequest, ResumeWorkerRequest, RunWorkerRequest, WorkerListItem } from "./index.js";
+import { AnswerStepRequest, ListWorkersRequest, PlanWorkerOutput, PlanWorkerRequest, ResumeWorkerRequest, RunWorkerRequest, WorkerListItem } from "./index.js";
+import Answer from "./application/Answer.js";
 
 export const WorkerModuleKey = "WorkerModule";
 
 export default class WorkerModule {
+    /**
+     * One instance for the whole module, so what a run recorded is still there
+     * when the same worker runs again. It lives only in the process for now.
+     */
+    private readonly _memoryRepository = new WorkerMemoryRepositoryInMemory();
+
     constructor(
         private readonly _db: NodePgDatabase,
         private readonly _llmGateway: LLMGateway,
@@ -52,8 +60,28 @@ export default class WorkerModule {
 
         const output = await this._db.transaction(async (tx) => {
             const workerRepository = new WorkerRepositoryDatabase(tx);
-            const resumeWorker = new ResumeWorker(workerRepository, new PlanService(this._llmGateway), deferredQueue);
+            const resumeWorker = new ResumeWorker(workerRepository, new PlanService(this._llmGateway), deferredQueue, this._memoryRepository);
             const authorizer = this._userModule.authorizer(resumeWorker, ['worker:resume']);
+
+            return authorizer.execute(input);
+        });
+
+        await deferredQueue.flush();
+
+        return output;
+    }
+
+    /**
+     * The answer of the user reaches the step that was asking, the llm plans what
+     * was waiting for it and the run goes back to the queue.
+     */
+    public async answer(input: AnswerStepRequest): Promise<PlanWorkerOutput> {
+        const deferredQueue = new DeferredQueue(this._queue);
+
+        const output = await this._db.transaction(async (tx) => {
+            const workerRepository = new WorkerRepositoryDatabase(tx);
+            const answerStep = new Answer(workerRepository, new PlanService(this._llmGateway), deferredQueue, this._memoryRepository);
+            const authorizer = this._userModule.authorizer(answerStep, ['worker:resume']);
 
             return authorizer.execute(input);
         });
@@ -77,7 +105,7 @@ export default class WorkerModule {
      */
     public async run(input: RunWorkerRequest): Promise<void> {
         const workerRepository = new WorkerRepositoryDatabase(this._db);
-        const orchestrator = new Orchestrator(workerRepository, new StepService(this._llmGateway), this._mediator, this._queue);
+        const orchestrator = new Orchestrator(workerRepository, new StepService(this._llmGateway), this._mediator, this._queue, this._memoryRepository);
 
         await orchestrator.execute(input);
     }

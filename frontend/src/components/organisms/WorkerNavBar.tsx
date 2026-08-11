@@ -3,6 +3,7 @@ import FetchHttpClient from "../../gateway/FetchHttpClient";
 import WorkerHttpGateway from "../../gateway/worker/WorkerHttpGateway";
 import { PlanWorker } from "../../application/worker/PlanWorker";
 import { ResumeWorker } from "../../application/worker/ResumeWorker";
+import { AnswerStep } from "../../application/worker/Answer";
 import { WorkerEvents } from "../../application/worker/WorkerEvents";
 import { useWorkerActions, useWorkerIds } from "../../hook/useWorkers";
 import { unwrapOrElse } from "../../util/Result";
@@ -74,6 +75,22 @@ export default function WorkerNavBar({ tenantId }: Readonly<WorkerNavBarProps>) 
     [tenantId, resumingId],
   );
 
+  /**
+   * Stable while the tenant does not change, so typing in the prompt does not
+   * re-render the cards. The card only learns the answer through the stream.
+   */
+  const handleAnswer = useCallback(
+    async (workerId: string, stepId: string, answer: string) => {
+      await AnswerStep({ workerGateway: new WorkerHttpGateway(new FetchHttpClient()) })({
+        tenantId,
+        workerId,
+        stepId,
+        answer,
+      }).then(unwrapOrElse(alert));
+    },
+    [tenantId],
+  );
+
   return (
     <aside className="worker-sidebar">
       <div className="worker-sidebar-header">
@@ -114,6 +131,7 @@ export default function WorkerNavBar({ tenantId }: Readonly<WorkerNavBarProps>) 
               isResuming={resumingId === workerId}
               canResume={resumingId === null}
               onResume={handleResume}
+              onAnswer={handleAnswer}
             />
           ))
         )}

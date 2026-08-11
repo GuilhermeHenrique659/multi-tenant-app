@@ -57,6 +57,13 @@
       "when": 1786123155654,
       "tag": "0007_curious_squirrel_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786448829119,
+      "tag": "0008_motionless_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }

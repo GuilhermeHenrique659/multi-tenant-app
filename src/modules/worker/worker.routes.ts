@@ -61,6 +61,26 @@ const WorkerRoutes = (container: Container) => {
         }
     );
 
+    workerRoutes.post('/:workerId/answer',
+        authenticationMiddleware,
+        async (req: Request, res: Response) => {
+            const tenantId = getHeader(req, 'x-tenant-id');
+            const userId = getHeader(req, 'x-user-id');
+
+            const result = await workerModule.answer({
+                tenantId,
+                userId,
+                workerId: req.params.workerId as string,
+                answer: {
+                    stepId: req.body.stepId,
+                    data: req.body.answer,
+                }
+            });
+
+            res.status(202).json(result);
+        }
+    );
+
     return workerRoutes;
 }
 

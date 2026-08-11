@@ -8,7 +8,15 @@ export type MemoryEntry = {
 export default class WorkerMemory {
     constructor(private readonly entries: MemoryEntry[] = []) { }
 
+    /** One entry per step: a step that runs again replaces what it had recorded. */
     public record(entry: MemoryEntry): void {
+        const current = this.entries.findIndex(recorded => recorded.order === entry.order);
+
+        if (current >= 0) {
+            this.entries[current] = entry;
+            return;
+        }
+
         this.entries.push(entry);
     }
 

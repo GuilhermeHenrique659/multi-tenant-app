@@ -60,6 +60,10 @@ export default class Worker extends Subject {
         return this.props.createdAt;
     }
 
+    public step(id: string) {
+        return this.props.steps.getById(id);
+    }
+
     /** The first step that is not completed yet, so a resumed worker does not repeat work. */
     public nextStep() {
         return this.props.steps.getAll().find(step => !step.status.isCompleted());
@@ -71,6 +75,22 @@ export default class Worker extends Subject {
         );
 
         this.notify({ event: 'stepsPlanned', data: { workerId: this.id } });
+    }
+
+    public answer(answer: { stepId: string, data: string}) {
+        const step = this.steps.getById(answer.stepId);
+
+        if (!step) throw new Error('Step not found');
+
+        if (!step.status.isPending()) throw new Error('Step must be pending');
+
+        const previous = this.steps.getPrevious(step.order);
+
+        if (previous?.status.isPending()) throw new Error('Step must be answer after previous steps finish');
+
+        step.answerStep(answer.data);
+
+        return step;
     }
 
     /**

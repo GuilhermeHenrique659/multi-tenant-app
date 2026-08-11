@@ -21,6 +21,16 @@ export type ResumeWorkerRequest = {
     workerId: string;
 }
 
+export type AnswerStepRequest = {
+    userId: string;
+    tenantId: string;
+    workerId: string;
+    answer: {
+        stepId: string;
+        data: string;
+    }
+}
+
 export type ListWorkersRequest = {
     userId: string;
     tenantId: string;
@@ -36,6 +46,7 @@ export type WorkerListItem = {
         order: number;
         input: unknown | null,
         type: string,
-        error: string | null
+        error: string | null,
+        answer: string | null
     }[];
 }

@@ -32,4 +32,8 @@ export default class StepStatus {
     public isCompleted() {
         return this.status === "completed";
     }
+
+    public isPending(){
+        return this.status === 'pending';
+    }
 }

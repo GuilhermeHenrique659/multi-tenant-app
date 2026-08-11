@@ -75,19 +75,28 @@ class Step extends Subject {
 
     public setAsRunning() {
         this.props.status = StepStatus.running();
-        this.notify({ event: 'StatusChanged', data: this.props.status.value })
+        this.notify({ event: 'StepUpdated', data: this.props.status.value })
     }
 
     public setAsComplete() {
         this.props.status = StepStatus.completed();
-        this.notify({ event: 'StatusChanged', data: this.props.status.value })
+        this.notify({ event: 'StepUpdated', data: this.props.status.value })
     }
 
     /** The reason is kept so a resume can be planned knowing what went wrong. */
     public setAsError(reason?: string) {
         this.props.status = StepStatus.failed();
         this.props.error = reason;
-        this.notify({ event: 'StatusChanged', data: this.props.status.value })
+        this.notify({ event: 'StepUpdated', data: this.props.status.value })
+    }
+
+    /**
+     * The work of an `ask` step is getting the data, so it is complete once the
+     * user answers: it is not asked again and the plan keeps it with the answer.
+     */
+    public answerStep(answer: string) {
+        this.props.answer = answer;
+        this.setAsComplete();
     }
 
     static create(workerId: string, action: string, input: any, order: number, type: StepType) {
@@ -102,7 +111,7 @@ class Step extends Subject {
         })
     }
 
-    static restore(props: { id: string; workerId: string; action: string; input: any; order: number; type: string; status: string; error?: string | null }) {
+    static restore(props: { id: string; workerId: string; action: string; input: any; order: number; type: string; status: string; error?: string | null; answer?: string | null }) {
         return new Step({
             id: new Id(props.id),
             workerId: new Id(props.workerId),
@@ -112,6 +121,7 @@ class Step extends Subject {
             type: StepType.create(props.type),
             status: StepStatus.create(props.status),
             ...(props.error ? { error: props.error } : {}),
+            ...(props.answer ? { answer: props.answer } : {}),
         })
     }
 }

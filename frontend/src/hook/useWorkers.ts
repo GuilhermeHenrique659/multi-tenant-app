@@ -42,12 +42,12 @@ export const useWorkerActions = () => {
         },
 
         /**
-         * Applies the status a single step reached. Only the patched worker gets
-         * a new identity: the collection and the state stay the same object, so
-         * only the card reading this worker re-renders. Nothing changes when the
-         * step already holds the status.
+         * Applies the status a single step reached, and the answer when the event
+         * carries one. Only the patched worker gets a new identity: the collection
+         * and the state stay the same object, so only the card reading this worker
+         * re-renders. Nothing changes when the step already holds both.
          */
-        patchStep: (stepId: string, order: number, status: string) => {
+        patchStep: (stepId: string, order: number, status: string, answer?: string | null) => {
             workersStore.setState(state => {
                 const workerId = state.index.FKStepId.get(stepId);
 
@@ -59,9 +59,13 @@ export const useWorkerActions = () => {
 
                 const current = worker.props.steps.find(step => step.order === order);
 
-                if (!current || current.status === status) return state;
+                if (!current) return state;
 
-                const steps = worker.props.steps.map(step => step.order === order ? { ...step, status } : step);
+                const nextAnswer = answer ?? current.answer;
+
+                if (current.status === status && current.answer === nextAnswer) return state;
+
+                const steps = worker.props.steps.map(step => step.order === order ? { ...step, status, answer: nextAnswer } : step);
 
                 state.workers.set(workerId, { props: { ...worker.props, steps } });
 

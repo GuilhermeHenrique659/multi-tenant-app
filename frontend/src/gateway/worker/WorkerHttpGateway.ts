@@ -61,4 +61,17 @@ export default class WorkerHttpGateway implements WorkerGateway {
 
         return () => source.close();
     }
+
+    public async answer(tenantId: string, workerId: string, stepId: string, answer: string): Promise<Result<{ workerId: string }, Error>> {
+        const result = await this._httpClient.post<{ workerId: string }>(`/api/workers/${workerId}/answer`, {
+            stepId,
+            answer,
+        }, { headers: { 'x-tenant-id': tenantId } });
+
+        if (result.isErr()) {
+            return Result.Error(result.error);
+        }
+
+        return Result.Ok(result.unwrap());
+    }
 }

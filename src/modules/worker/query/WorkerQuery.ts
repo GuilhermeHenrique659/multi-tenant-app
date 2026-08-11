@@ -15,6 +15,7 @@ export type WorkerStepRow = {
     stepType: string | null;
     stepInput: unknown | null,
     stepError: string | null,
+    stepAnswer: string | null,
 };
 
 /** One row per step, so the rows of a worker are folded into a single item. */
@@ -30,6 +31,7 @@ export function toWorkerList(rows: WorkerStepRow[]): WorkerListItem[] {
             type: row.stepType,
             input: StepType.isAsk(row.stepType) ? row.stepInput : null,
             error: row.stepError,
+            answer: row.stepAnswer,
             status: row.stepStatus ?? 'pending',
             order: row.stepOrder ?? 0,
         });
@@ -54,6 +56,7 @@ export default class WorkerQuery {
             stepInput: WorkerStepTable.input,
             stepType: WorkerStepTable.type,
             stepError: WorkerStepTable.error,
+            stepAnswer: WorkerStepTable.answer,
         })
             .from(WorkerTable)
             .leftJoin(WorkerStepTable, eq(WorkerStepTable.workerId, WorkerTable.id))

@@ -4,6 +4,7 @@ import { Queue } from "../../@common/queue/Queue.js";
 import PlanService from "../domain/PlanService.js";
 import { WorkerResumed } from "../domain/WorkerEvents.js";
 import WorkerCriteria from "../repository/WorkerCriteria.js";
+import WorkerMemoryRepository from "../repository/WorkerMemoryRepository.js";
 import WorkerRepository from "../repository/WorkerRepository.js";
 
 /**
@@ -16,6 +17,7 @@ export default class ResumeWorker implements AuthorizerApplicationService<Input,
         private readonly workerRepository: WorkerRepository,
         private readonly planService: PlanService,
         private readonly _queue: Queue,
+        private readonly _memoryRepository: WorkerMemoryRepository,
     ) { }
 
     public async execute(input: Input): Promise<Output> {
@@ -29,6 +31,7 @@ export default class ResumeWorker implements AuthorizerApplicationService<Input,
 
         const [planError, steps] = await this.planService.replan({
             worker,
+            memory: await this._memoryRepository.get(worker.id),
             tenantId: input.tenantId,
             userId: input.userId,
         });
