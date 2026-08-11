@@ -2,7 +2,7 @@ import { DomainEvent, Queue, Subscriber, Unsubscribe } from "./Queue.js";
 
 /**
  * Buffers what is published inside a database transaction and only hands the
- * events to the real queue on `flush`, so a subscriber never sees a worker that
+ * events to the real queue on `flush`, so a subscriber never sees a agent that
  * is not committed yet.
  */
 export default class DeferredQueue implements Queue {

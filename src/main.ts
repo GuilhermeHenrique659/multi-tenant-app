@@ -1,16 +1,16 @@
 import express, { NextFunction, Request, Response } from 'express';
 import InMemoryQueue from './modules/@common/queue/InMemoryQueue.js';
-import loadOpenRouterConfig from './modules/worker/gateway/openRouterConfig.js';
+import loadOpenRouterConfig from './modules/agent/gateway/openRouterConfig.js';
 import Logger from './modules/@common/Logger.js';
 import Mediator from './modules/@common/Mediator.js';
-import OpenRouterLLMGateway from './modules/worker/gateway/OpenRouterLLMGateway.js';
+import OpenRouterLLMGateway from './modules/agent/gateway/OpenRouterLLMGateway.js';
 import ProjectModule from './modules/project/project.module.js';
 import registerCapabilities from './modules/capabilities.js';
 import routers from './modules/router.js';
 import TenantModule from './modules/tenant/tenant.module.js';
 import UserModule, { ProjectUserModuleKey } from './modules/user/user.module.js';
-import WorkerEventStream from './modules/worker/WorkerEventStream.js';
-import WorkerModule, { WorkerModuleKey } from './modules/worker/worker.module.js';
+import AgentEventStream from './modules/agent/AgentEventStream.js';
+import AgentModule, { AgentModuleKey } from './modules/agent/agent.module.js';
 import { AddMemberInput, CreateTenantInput } from './modules/tenant/index.js';
 import { Container } from './modules/@common/Container.js';
 import { db } from './db/config.js';
@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { QueueKey } from './modules/@common/queue/Queue.js';
 import { requiredEnv } from './modules/@common/Env.js';
 import { TenantUserModuleKey } from './modules/tenant/UserModule.js';
-import { WorkerUserModuleKey } from './modules/worker/UserModule.js';
+import { AgentUserModuleKey } from './modules/agent/UserModule.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,21 +47,21 @@ async function main() {
     const userModule = new UserModule(db);
     container.register(ProjectUserModuleKey, userModule);
     container.register(TenantUserModuleKey, userModule);
-    container.register(WorkerUserModuleKey, userModule);
+    container.register(AgentUserModuleKey, userModule);
 
     const projectModule = new ProjectModule(db, userModule);
     const tenantModule = new TenantModule(db, mediator, userModule);
     await registerCapabilities(mediator, projectModule, tenantModule);
 
-    const workerQueue = new InMemoryQueue();
-    const workerModule = new WorkerModule(db, new OpenRouterLLMGateway(loadOpenRouterConfig()), workerQueue, mediator, userModule);
-    await workerModule.listen();
+    const agentQueue = new InMemoryQueue();
+    const agentModule = new AgentModule(db, new OpenRouterLLMGateway(loadOpenRouterConfig()), agentQueue, mediator, userModule);
+    await agentModule.listen();
 
-    container.register(WorkerModuleKey, workerModule);
-    container.register(QueueKey, workerQueue);
+    container.register(AgentModuleKey, agentModule);
+    container.register(QueueKey, agentQueue);
 
     const eventStreams = new Map<string, EventStream>([
-        ['workers', new WorkerEventStream(workerModule)],
+        ['agents', new AgentEventStream(agentModule)],
     ]);
     container.register(EventStreamsKey, eventStreams);
 

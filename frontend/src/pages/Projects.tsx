@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import ProjectsNavBar from "../components/organisms/ProjectsNavBar";
 import TaskList from "../components/organisms/TaskList";
-import WorkerNavBar from "../components/organisms/WorkerNavBar";
+import AgentNavBar from "../components/organisms/AgentNavBar";
 import EmptyState from "../components/atoms/EmptyState";
 import {
   useProject,
@@ -52,7 +52,7 @@ export default function Projects() {
           <EmptyState>Select a project to view tasks</EmptyState>
         </div>
       )}
-      {tenantId ? <WorkerNavBar tenantId={tenantId} /> : null}
+      {tenantId ? <AgentNavBar tenantId={tenantId} /> : null}
     </div>
   );
 }

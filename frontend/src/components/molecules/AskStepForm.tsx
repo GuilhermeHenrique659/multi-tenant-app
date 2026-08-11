@@ -27,10 +27,10 @@ export default function AskStepForm({ question, onAnswer }: Readonly<AskStepForm
   };
 
   return (
-    <form className="worker-step-ask" onSubmit={handleAnswer}>
-      <p className="worker-step-question">{question}</p>
+    <form className="agent-step-ask" onSubmit={handleAnswer}>
+      <p className="agent-step-question">{question}</p>
       <Textarea
-        className="worker-step-answer"
+        className="agent-step-answer"
         value={answer}
         onChange={(event) => setAnswer(event.target.value)}
         placeholder="Type your answer..."

@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
  */
 const BASE_CLASS = {
   task: "task-status",
-  step: "worker-step-status",
+  step: "agent-step-status",
   project: "project-status-label",
   role: "member-role",
 } as const;

@@ -1,6 +1,6 @@
 # Multi-Tenant App — POC de gerenciador de projetos com agente de IA
 
-Prova de conceito de um gerenciador de projetos simples e multi-tenant, com um **agente de IA (worker)** que recebe um pedido em linguagem natural, monta um plano de passos e **executa esses passos usando as próprias operações da aplicação** (criar projeto, adicionar tarefa, atribuir tarefa, gerenciar membros...).
+Prova de conceito de um gerenciador de projetos simples e multi-tenant, com um **agente de IA (agent)** que recebe um pedido em linguagem natural, monta um plano de passos e **executa esses passos usando as próprias operações da aplicação** (criar projeto, adicionar tarefa, atribuir tarefa, gerenciar membros...).
 
 A ideia central: o agente não tem acesso ao banco nem a código privado. Ele só consegue fazer o que a aplicação já sabe fazer, através de um catálogo explícito de capacidades — e cada capacidade continua passando pela mesma checagem de permissão de um usuário humano.
 
@@ -28,7 +28,7 @@ O backend é dividido em módulos independentes (`src/modules/`), cada um com `d
 - **tenant** — tenants e memberships (papéis `admin` / `member`), limite de membros.
 - **user** — identidade e **autorização**. É a fonte única de permissão: todo caso de uso é embrulhado por um decorator de autorização deste módulo.
 - **project** — projetos e tarefas (status `screen` → `working` → `review` → `done`), atribuição de responsável.
-- **worker** — o agente de IA: planejamento, orquestração dos passos, retomada e streaming de eventos.
+- **agent** — o agente de IA: planejamento, orquestração dos passos, retomada e streaming de eventos.
 - **sse** — expõe streams de eventos de outros módulos sem conhecer nenhum deles (interface `EventStream`).
 - **@common** — Mediator, Container, fila, autorizadores, `Criteria`, observers, logger, `Result` em tupla.
 
@@ -40,7 +40,7 @@ Isolamento por tenant: hoje o tenant vem do header `x-tenant-id` em cada request
 
 ### 1. Catálogo de capacidades
 
-`src/modules/worker/domain/ModuleCapabilities.ts` descreve, em JSON Schema, **toda** ação que um worker pode disparar: nome da ação, schema de entrada, schema de saída e permissões exigidas.
+`src/modules/agent/domain/ModuleCapabilities.ts` descreve, em JSON Schema, **toda** ação que um agent pode disparar: nome da ação, schema de entrada, schema de saída e permissões exigidas.
 
 `src/modules/capabilities.ts` liga cada ação à fachada do módulo que a executa, via Mediator:
 
@@ -52,7 +52,7 @@ addMember · updateMember · removeMember · getTenant
 Consequências desse desenho:
 
 - O LLM só pode escolher ações dessa lista — qualquer outra é rejeitada no parse do plano.
-- A execução passa pela fachada do módulo, então a **permissão do usuário que criou o worker continua valendo**. Um `member` não consegue criar projeto por interposta IA.
+- A execução passa pela fachada do módulo, então a **permissão do usuário que criou o agent continua valendo**. Um `member` não consegue criar projeto por interposta IA.
 - `createTenant` e `listTenants` estão deliberadamente fora do catálogo.
 
 ### 2. Planejamento (`Planner` + `PlanService`)
@@ -63,33 +63,33 @@ O usuário escreve um pedido (ex.: *"crie o projeto Onboarding e adicione as tar
 { "name": "...", "type": "...", "steps": [ { "action": "...", "input": {...}, "type": "action", "order": 1 } ] }
 ```
 
-O `Worker` é persistido com sua `StepCollection` ordenada e um evento `WorkerCreated` vai para a fila.
+O `Agent` é persistido com sua `StepCollection` ordenada e um evento `AgentCreated` vai para a fila.
 
-Um passo pode ser do tipo `action` (o sistema executa) ou `ask` (pedir dado faltante ao usuário — **ainda não implementado**, o worker para nesse caso).
+Um passo pode ser do tipo `action` (o sistema executa) ou `ask` (pedir dado faltante ao usuário — **ainda não implementado**, o agent para nesse caso).
 
 ### 3. Execução (`Orchestrator` + `StepService`)
 
-Ao consumir `WorkerCreated`, o orquestrador percorre os passos pendentes em ordem e, para cada um:
+Ao consumir `AgentCreated`, o orquestrador percorre os passos pendentes em ordem e, para cada um:
 
 1. marca como `running`, salva e publica `StepStarted`;
-2. **resolve o input** — o `StepService` pede ao LLM que preencha o payload usando apenas a `WorkerMemory` (o que os passos anteriores produziram) e o contexto, sem inventar ids;
+2. **resolve o input** — o `StepService` pede ao LLM que preencha o payload usando apenas a `AgentMemory` (o que os passos anteriores produziram) e o contexto, sem inventar ids;
 3. despacha a ação pelo Mediator para o módulo dono;
 4. **interpreta o output** em fatos estruturados e grava na memória;
 5. salva e publica `StepCompleted`.
 
-Se algo falha, o passo é marcado como `failed` com a mensagem do erro, o estado é persistido, `StepFailed` é publicado e o worker para ali — nada é desfeito às cegas.
+Se algo falha, o passo é marcado como `failed` com a mensagem do erro, o estado é persistido, `StepFailed` é publicado e o agent para ali — nada é desfeito às cegas.
 
 Detalhe de transação: o planejamento roda em transação (com uma `DeferredQueue`, que só publica os eventos após o commit); a execução **não**, porque cada passo abre a transação do seu próprio módulo.
 
-### 4. Retomada (`ResumeWorker`)
+### 4. Retomada (`ResumeAgent`)
 
-`POST /api/workers/:id/resume` não repete o trabalho já feito. O LLM recebe o plano como ele parou — incluindo o `error` do passo que falhou — e **replaneja só o que falta**. Os passos já `completed` são preservados; o resto é substituído, com a ordem continuando de onde parou.
+`POST /api/agents/:id/resume` não repete o trabalho já feito. O LLM recebe o plano como ele parou — incluindo o `error` do passo que falhou — e **replaneja só o que falta**. Os passos já `completed` são preservados; o resto é substituído, com a ordem continuando de onde parou.
 
 O prompt de retomada instrui explicitamente que os efeitos dos passos concluídos **já existem** no sistema e que seus ids foram perdidos: o novo plano deve começar com ações de leitura (ex.: `listProjects`) para reencontrá-los antes de agir.
 
 ### 5. Acompanhamento em tempo real
 
-`GET /api/events/workers?tenantId=&userId=` abre um SSE que envia um `snapshot` com o estado atual dos workers e, depois, cada mudança de passo. O `WorkerEventStream` faz o filtro por tenant (a fila é compartilhada) e a autorização acontece na abertura do stream. No frontend, `WorkerNavBar` mostra o plano de cada worker e o progresso passo a passo, com botão de retomar.
+`GET /api/events/agents?tenantId=&userId=` abre um SSE que envia um `snapshot` com o estado atual dos agents e, depois, cada mudança de passo. O `AgentEventStream` faz o filtro por tenant (a fila é compartilhada) e a autorização acontece na abertura do stream. No frontend, `AgentNavBar` mostra o plano de cada agent e o progresso passo a passo, com botão de retomar.
 
 ---
 
@@ -110,10 +110,10 @@ Todas as rotas ficam sob `/api`. Autenticação é por header `x-user-id` (`auth
 | `GET` | `/api/projects/:projectId/tasks/:taskId` | detalha tarefa |
 | `PATCH` | `/api/projects/:projectId/tasks/:taskId` | atualiza tarefa |
 | `PATCH` | `/api/projects/:projectId/tasks/:taskId/assign` | atribui tarefa |
-| `POST` | `/api/workers` | cria um worker a partir de `{ userPrompt }` |
-| `GET` | `/api/workers` | lista workers com seus passos |
-| `POST` | `/api/workers/:workerId/resume` | replaneja e retoma |
-| `GET` | `/api/events/workers` | stream SSE de eventos de worker |
+| `POST` | `/api/agents` | cria um agent a partir de `{ userPrompt }` |
+| `GET` | `/api/agents` | lista agents com seus passos |
+| `POST` | `/api/agents/:agentId/resume` | replaneja e retoma |
+| `GET` | `/api/events/agents` | stream SSE de eventos de agent |
 
 ---
 
@@ -167,7 +167,7 @@ Documentadas em detalhe em [`AGENTS.md`](AGENTS.md). Em resumo:
 - Repositórios recebem `Criteria`; existem `Fake*Repository` para testes de caso de uso.
 - Aggregates registram eventos via observer, e o repositório decide entre INSERT e UPDATE a partir deles.
 
-Documentos de arquitetura em [`plans/`](plans/) (escritos antes do worker ficar pronto — parte do texto sobre o módulo worker está defasada).
+Documentos de arquitetura em [`plans/`](plans/) (escritos antes do agent ficar pronto — parte do texto sobre o módulo agent está defasada).
 
 ---
 
@@ -176,8 +176,8 @@ Documentos de arquitetura em [`plans/`](plans/) (escritos antes do worker ficar 
 O que a POC pretende cobrir e ainda não cobre:
 
 - **Visualizações** — gráficos gerados pelo agente a partir dos dados do projeto (progresso, distribuição de tarefas por responsável, burndown).
-- **Relatórios** — resumo em texto do estado do projeto, produzido pelo worker ao fim de um plano.
+- **Relatórios** — resumo em texto do estado do projeto, produzido pelo agent ao fim de um plano.
 - **Passos do tipo `ask`** — o plano já pode prevê-los, mas o orquestrador para ao encontrar um; falta o ciclo de perguntar ao usuário e retomar com a resposta.
-- **Anexos** — `POST /api/workers` aceita um campo `file`, mas ele ainda não é usado no planejamento.
-- **Fila durável** — hoje é `InMemoryQueue`; workers em andamento não sobrevivem a um restart.
+- **Anexos** — `POST /api/agents` aceita um campo `file`, mas ele ainda não é usado no planejamento.
+- **Fila durável** — hoje é `InMemoryQueue`; agents em andamento não sobrevivem a um restart.
 - **Middleware de erro** — está registrado antes dos routers, então não captura erros dos handlers (rotas críticas tratam o próprio erro).

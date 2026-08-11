@@ -1,6 +1,6 @@
 /**
  * Go style result: `[error, null]` or `[null, value]`. Used where the caller has
- * to keep going after a failure — the LLM path, for instance, where the worker
+ * to keep going after a failure — the LLM path, for instance, where the agent
  * still has to persist the status of its steps.
  */
 export type TupleResult<T> = [Error, null] | [null, T];

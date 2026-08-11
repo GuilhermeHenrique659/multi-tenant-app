@@ -2,7 +2,7 @@
 
 Multi-tenant SaaS: Express 5 + TypeScript backend (`src/`), React 19 + Vite SPA (`frontend/`), Drizzle ORM on PostgreSQL.
 
-Domains: **tenant** (tenants + memberships), **user** (identity + authorization), **project** (projects + tasks), **worker** (LLM-driven automation — WIP, see below).
+Domains: **tenant** (tenants + memberships), **user** (identity + authorization), **project** (projects + tasks), **agent** (LLM-driven automation — WIP, see below).
 
 ## Workflow — mandatory for every implementation
 
@@ -72,7 +72,7 @@ Tests (run from root): `npm test` → `node --import tsx --test 'src/modules/**/
 
 - **ESM + NodeNext**: all relative imports MUST use `.js` extension even though source is `.ts` (`import x from './foo.js'`). Omitting it breaks the build.
 - **Strict TypeScript**: `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. Array/index access is `T | undefined`; always handle the `undefined` case.
-- **`tsconfig.json` sets no `lib`**, so `target: esnext` pulls in the full DOM lib. A missing import of a DOM-colliding name (`Worker`, `WorkerType`, `Event`, `Response`…) resolves to the DOM type **and compiles silently**. Always verify domain classes are actually imported.
+- **`tsconfig.json` sets no `lib`**, so `target: esnext` pulls in the full DOM lib. A missing import of a DOM-colliding name (`Event`, `Response`, `Request`, `Storage`…) resolves to the DOM type **and compiles silently**. Always verify domain classes are actually imported. The `agent` aggregate used to be called `Worker`, which collided with the DOM `Worker`; `Agent` and `AgentType` do not collide, so a missing import of those is now a compile error instead of a silent bind.
 - **DB schema** in `src/modules/*/db/*.ts`. Both `drizzle-kit push` (dev, used by `npm run start`) and versioned migrations in `src/db/migrations/` are in play — the migrations directory is committed and up to date through `0005`. Prefer `generate` + `migrate` when a change needs to be reproducible.
 - **Env vars**: `DATABASE_URL` (required, Postgres), `SUPER_ADMIN_NAME`, `SUPER_ADMIN_EMAIL`. `.env` loaded via `dotenv/config` in `src/db/config.ts`.
 - **Logging**: `src/modules/@common/Logger.ts` (winston, console transport). Use `Logger.info` / `Logger.error`, not `console.*`.
@@ -245,17 +245,17 @@ Implementations per module:
 - **Domain-level permission check**: `TaskService.assignUser` re-checks the assignee's role against `task:update` / `task:read` before assignment — a user can only be assigned work they'd be allowed to do.
 - **Frontend auth**: login posts to `/api/users`, stores `{ userId, name, isSuperAdmin }` in `localStorage`; `FetchHttpClient` auto-attaches `x-user-id`, and gateways add `x-tenant-id` per call.
 
-### `worker/` module — work in progress
+### `agent/` module — work in progress
 
 An LLM-driven automation module, **not yet wired to any route, container key, or table**. Current shape:
 
-- `domain/Worker.ts` — aggregate holding a `StepCollection`; `WorkerType` is `scheduler | view | once`.
+- `domain/Agent.ts` — aggregate holding a `StepCollection`; `AgentType` is `scheduler | view | once`.
 - `domain/Step.ts` — `{ action, input, order, type, status }`; `StepType` is `ACTION | ASK`, `StepStatus` is `pending | running | completed | failed`.
 - `domain/AllowModules.ts` — whitelist of actions the LLM may call (`createProject`, `createTask`, `updateTask`, `assignTask`) with input/output shapes and required roles.
-- `gateway/LLMGateway.ts`, `repository/WorkerRepository.ts` — interfaces only.
-- `application/CreateWorker.ts` — `execute()` is empty.
+- `gateway/LLMGateway.ts`, `repository/AgentRepository.ts` — interfaces only.
+- `application/CreateAgent.ts` — `execute()` is empty.
 
-Known gaps in this module: `Worker.ts` doesn't import `WorkerType` and `WorkerRepository.ts` doesn't import `Worker` (both silently bind to DOM globals — see the `lib` note under Critical conventions); neither `Worker` nor `CreateWorker` is exported. Fix those before building on top of it.
+Known gaps in this module: `Agent.ts` doesn't import `AgentType` and `AgentRepository.ts` doesn't import `Agent` (both silently bind to DOM globals — see the `lib` note under Critical conventions); neither `Agent` nor `CreateAgent` is exported. Fix those before building on top of it.
 
 ## Frontend architecture
 
@@ -380,7 +380,7 @@ Tests come **before** the implementation — see [Workflow](#workflow--mandatory
 - **Integration tests**: real Mediator + real use cases + fake repositories.
 - **Domain tests**: test entities directly (e.g. `Tenant.spec.ts` covers invariants like "last admin cannot be removed").
 - Test files are excluded from the `tsc` build via `tsconfig.json` `exclude`.
-- **Coverage gaps**: `project/` and `worker/` have no tests, and `project/` has no fake repositories. Add both when touching those modules.
+- **Coverage gaps**: `project/` and `agent/` have no tests, and `project/` has no fake repositories. Add both when touching those modules.
 
 ## Docker & deploy
 
@@ -412,7 +412,7 @@ Tests come **before** the implementation — see [Workflow](#workflow--mandatory
 Documented so they aren't mistaken for intended behavior:
 
 - **`src/main.ts`**: the error-handling middleware is registered *before* the routers, so it never catches route errors. Use-case errors (`Forbidden`, `Project not found`) surface as Express's default HTML 500 instead of the intended JSON 400.
-- **`worker/`**: missing imports bind to DOM globals; classes not exported (see the module section above).
+- **`agent/`**: missing imports bind to DOM globals; classes not exported (see the module section above).
 - **`frontend/package.json`**: missing the `zod` dependency.
 - **`TaskRepositoryDatabase.save()`**: the INSERT branch omits `assigneeId`, `startAt` and `endAt`, so a task created already assigned loses its assignee.
 - **`Task.changeStatus()`**: the "due date required to finish" guard is inverted — it throws when `endAt` *is* set.

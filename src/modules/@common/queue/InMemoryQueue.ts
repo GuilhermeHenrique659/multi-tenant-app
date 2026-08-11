@@ -3,7 +3,7 @@ import { DomainEvent, Queue, Subscriber, Unsubscribe } from "./Queue.js";
 
 /**
  * In process queue: `publish` returns as soon as the event is queued and the
- * subscribers run out of band, so the caller never waits for the worker run.
+ * subscribers run out of band, so the caller never waits for the agent run.
  */
 export default class InMemoryQueue implements Queue {
     private readonly subscribers = new Map<string, Subscriber[]>();

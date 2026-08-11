@@ -24,13 +24,13 @@ describe('DeferredQueue', () => {
         const inner = new SpyQueue();
         const queue = new DeferredQueue(inner);
 
-        await queue.publish({ eventName: 'WorkerCreated', data: { workerId: 'worker-1' } });
+        await queue.publish({ eventName: 'AgentCreated', data: { agentId: 'agent-1' } });
 
         assert.deepEqual(inner.published, []);
 
         await queue.flush();
 
-        assert.deepEqual(inner.published, [{ eventName: 'WorkerCreated', data: { workerId: 'worker-1' } }]);
+        assert.deepEqual(inner.published, [{ eventName: 'AgentCreated', data: { agentId: 'agent-1' } }]);
     });
 
     it('keeps the order of the events and flushes each one only once', async () => {
@@ -50,9 +50,9 @@ describe('DeferredQueue', () => {
         const inner = new SpyQueue();
         const queue = new DeferredQueue(inner);
 
-        const unsubscribe = await queue.subscriber('WorkerCreated', async () => { });
+        const unsubscribe = await queue.subscriber('AgentCreated', async () => { });
 
-        assert.deepEqual(inner.subscribed, ['WorkerCreated']);
+        assert.deepEqual(inner.subscribed, ['AgentCreated']);
 
         unsubscribe();
 

@@ -21,7 +21,7 @@ The system is built using a modular architecture where each module represents a 
 - **Tenant Module**: manages tenant creation, membership, and tenant-specific operations
 - **User Module**: handles user identity, check-in/login, and — as a cross-cutting concern — authorization for every other module
 - **Project Module**: manages projects and tasks within a tenant, including assignment rules
-- **Worker Module**: LLM-driven automation over a whitelist of module actions. Work in progress: domain sketch only, not wired to routes, container or database
+- **Agent Module**: LLM-driven automation over a whitelist of module actions. Work in progress: domain sketch only, not wired to routes, container or database
 
 ### Module Interface Contract
 
@@ -147,7 +147,7 @@ Queries into a repository are expressed as criteria objects rather than raw cond
 - **User**: its own aggregate root
 - **Project**: its own aggregate root
 - **Task**: its own aggregate root
-- **Worker** (WIP): root holding an ordered collection of steps
+- **Agent** (WIP): root holding an ordered collection of steps
 
 ### Value Objects
 
@@ -155,7 +155,7 @@ Queries into a repository are expressed as criteria objects rather than raw cond
 - `ProjectStatus` — validates `active` | `closed`
 - `TaskStatus` — validates `screen` | `working` | `review` | `done`
 - `DueDate` — enforces start-before-end, may carry an open end
-- `StepType` / `StepStatus` / `WorkerType` (WIP)
+- `StepType` / `StepStatus` / `AgentType` (WIP)
 
 Invalid states are unrepresentable: value objects validate in their factory and expose only a readonly `value`.
 

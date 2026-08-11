@@ -709,8 +709,8 @@ select.form-input {
   margin: 6px 0 0;
 }
 
-/* Worker sidebar */
-.worker-sidebar {
+/* Agent sidebar */
+.agent-sidebar {
   width: 300px;
   flex-shrink: 0;
   border-left: 1px solid var(--border);
@@ -723,36 +723,36 @@ select.form-input {
   overflow: hidden;
 }
 
-.worker-sidebar-header h2 {
+.agent-sidebar-header h2 {
   font-size: 18px;
   margin: 0;
 }
 
-.worker-form {
+.agent-form {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.worker-textarea {
+.agent-textarea {
   font-family: inherit;
   resize: vertical;
   min-height: 96px;
 }
 
-.worker-form-actions {
+.agent-form-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.worker-form-actions .btn:disabled {
+.agent-form-actions .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.worker-form-actions .btn:disabled:hover {
+.agent-form-actions .btn:disabled:hover {
   background: var(--bg);
 }
 
@@ -761,7 +761,7 @@ select.form-input {
  * the only part that scrolls. `min-height: 0` is what lets a flex item shrink
  * below its content and scroll.
  */
-.worker-list {
+.agent-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -770,13 +770,13 @@ select.form-input {
   overflow-y: auto;
 }
 
-.worker-card {
+.agent-card {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 12px;
 }
 
-.worker-card-header {
+.agent-card-header {
   all: unset;
   cursor: pointer;
   display: flex;
@@ -788,23 +788,23 @@ select.form-input {
 }
 
 /* Points right when the steps are hidden and down when they are shown. */
-.worker-card-chevron {
+.agent-card-chevron {
   font-size: 14px;
   line-height: 1;
   color: var(--text);
   transition: transform 0.15s;
 }
 
-.worker-card-chevron--open {
+.agent-card-chevron--open {
   transform: rotate(90deg);
 }
 
-.worker-card-name {
+.agent-card-name {
   font-size: 14px;
   margin: 0;
 }
 
-.worker-step-list {
+.agent-step-list {
   margin: 0;
   padding-left: 18px;
   display: flex;
@@ -812,7 +812,7 @@ select.form-input {
   gap: 2px;
 }
 
-.worker-step {
+.agent-step {
   font-size: 12px;
   color: var(--text);
   display: flex;
@@ -820,20 +820,20 @@ select.form-input {
   gap: 6px;
 }
 
-.worker-step-row {
+.agent-step-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.worker-step-action {
+.agent-step-action {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.worker-step-status {
+.agent-step-status {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -845,23 +845,23 @@ select.form-input {
   color: var(--text);
 }
 
-.worker-step-status--running {
+.agent-step-status--running {
   background: rgba(59, 130, 246, 0.1);
   color: #3b82f6;
 }
 
-.worker-step-status--completed {
+.agent-step-status--completed {
   background: rgba(34, 197, 94, 0.15);
   color: #22c55e;
 }
 
-.worker-step-status--failed {
+.agent-step-status--failed {
   background: #fef2f2;
   color: #ef4444;
 }
 
 /* The question a pending `ask` step waits on, right under the step itself. */
-.worker-step-ask {
+.agent-step-ask {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -872,14 +872,14 @@ select.form-input {
   background: var(--code-bg);
 }
 
-.worker-step-question {
+.agent-step-question {
   margin: 0;
   align-self: stretch;
   font-size: 12px;
   color: var(--text);
 }
 
-.worker-step-answer {
+.agent-step-answer {
   align-self: stretch;
   resize: vertical;
   font: inherit;
@@ -892,7 +892,7 @@ select.form-input {
 }
 
 /* What was already answered, read only under its question. */
-.worker-step-answered {
+.agent-step-answered {
   margin: 0;
   align-self: stretch;
   font-size: 12px;

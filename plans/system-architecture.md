@@ -43,10 +43,10 @@ The entry point of the application sets up:
 - **Database**: `projects` and `tasks` tables with repository implementations
 - **Query**: `ProjectQuery` — project/task listings and task-with-assignee join
 
-#### Worker Module (work in progress)
+#### Agent Module (work in progress)
 - Intended to run LLM-driven automations against a whitelist of module actions (`AllowModules.ts`)
-- `Worker` (aggregate) holds an ordered `StepCollection`; each `Step` is an `ACTION` or an `ASK` with a lifecycle status
-- `LLMGateway` and `WorkerRepository` are interfaces only; `CreateWorker.execute()` is empty
+- `Agent` (aggregate) holds an ordered `StepCollection`; each `Step` is an `ACTION` or an `ASK` with a lifecycle status
+- `LLMGateway` and `AgentRepository` are interfaces only; `CreateAgent.execute()` is empty
 - Not registered in the router, the container, or the database schema
 
 ### 3. Common Components (`src/modules/@common/`)

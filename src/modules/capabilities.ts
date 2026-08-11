@@ -3,8 +3,8 @@ import ProjectModule from "./project/project.module.js";
 import TenantModule from "./tenant/tenant.module.js";
 
 /**
- * Every action a worker can dispatch, wired to the use case that runs it.
- * The keys must match `action` in worker/domain/services/ModuleCapabilities.ts, and the
+ * Every action a agent can dispatch, wired to the use case that runs it.
+ * The keys must match `action` in agent/domain/services/ModuleCapabilities.ts, and the
  * module facades keep the permission check of each use case in place.
  */
 export default async function registerCapabilities(
